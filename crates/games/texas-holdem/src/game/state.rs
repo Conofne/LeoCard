@@ -1,3 +1,4 @@
+use super::BettingRecord;
 use crate::statistics::GameStatistics;
 use crate::{EvaluatedHand, HandError, RuleError, TexasHoldemCard, TexasHoldemRuleSet, build_deck};
 use leocard_game_common::{DeckError, validate_deck as validate_physical_deck};
@@ -157,6 +158,10 @@ pub enum GameError {
         maximum_target: u32,
         target: u32,
     },
+    RaiseInvalidIncrement {
+        increment: u32,
+        target: u32,
+    },
     RaiseNotReopened,
     PlayerCannotAct(TexasHoldemPlayerId),
     MustPostBlind,
@@ -199,6 +204,12 @@ impl fmt::Display for GameError {
                 maximum_target,
                 target,
             } => write!(f, "最多只能下注到 {maximum_target}，实际目标为 {target}"),
+            Self::RaiseInvalidIncrement { increment, target } => {
+                write!(
+                    f,
+                    "普通加注增量必须为 {increment} 的倍数，实际目标为 {target}"
+                )
+            }
             Self::RaiseNotReopened => f.write_str("不足额全下没有重新开放加注权"),
             Self::PlayerCannotAct(player) => write!(f, "玩家 {:?} 已弃牌、全下或出局", player),
             Self::MustPostBlind => f.write_str("当前只能下盲注"),
@@ -235,6 +246,7 @@ impl From<HandError> for GameError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameState {
+    pub(super) betting_history: Vec<BettingRecord>,
     pub(super) rules: TexasHoldemRuleSet,
     pub(super) players: Vec<PlayerState>,
     pub(super) dealer: TexasHoldemPlayerId,
@@ -301,6 +313,7 @@ impl GameState {
             })
             .collect::<Vec<_>>();
         let mut state = Self {
+            betting_history: Vec::new(),
             rules,
             players,
             dealer,
@@ -324,6 +337,10 @@ impl GameState {
 
     pub const fn rules(&self) -> &TexasHoldemRuleSet {
         &self.rules
+    }
+
+    pub fn betting_history(&self) -> &[BettingRecord] {
+        &self.betting_history
     }
 
     pub fn players(&self) -> &[PlayerState] {
