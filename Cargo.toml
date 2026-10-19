@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/games/blackjack",
     "crates/games/common",
     "crates/achievements",
     "crates/client",
@@ -16,10 +17,10 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.8.4"
+version = "0.9.0"
 edition = "2024"
 license = "GPL-3.0-only"
-rust-version = "1.99"
+rust-version = "1.99.1"
 
 [workspace.dependencies]
 csv = "1.4"
@@ -56,6 +57,7 @@ image = { version = "0.25", default-features = false, features = [
     "png",
     "jpeg",
 ] }
+jni = { version = "0.22.4", default-features = false }
 postcard = { version = "1.1", features = ["alloc"] }
 rfd = "0.17"
 reqwest = { version = "0.13", default-features = false, features = [
@@ -63,9 +65,12 @@ reqwest = { version = "0.13", default-features = false, features = [
     "json",
     "rustls",
 ] }
+rustls-platform-verifier = "0.7.1"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 sha2 = "0.11"
+sysinfo = { version = "0.39.6", default-features = false }
 tokio = { version = "1.53", features = [
     "io-util",
     "macros",
@@ -74,6 +79,7 @@ tokio = { version = "1.53", features = [
     "sync",
     "time",
 ] }
+winresource = "0.1"
 winit = { version = "0.30", default-features = false }
 
 [profile.release]

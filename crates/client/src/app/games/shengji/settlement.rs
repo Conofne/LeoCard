@@ -9,7 +9,6 @@ use bevy::picking::Pickable;
 use std::f32::consts;
 
 use super::state::{ShengjiScoreCaptureEffectState, ShengjiSettlementAnimation};
-use super::view::shengji_card_face;
 use super::{
     ActiveShengjiScoreAbsorb, ActiveShengjiScoreCapture, ShengjiCollectingScoreText,
     ShengjiKittyMultiplier, ShengjiKittyRevealCard, ShengjiKittyScoreAnchor, ShengjiKittyScoreText,
@@ -26,10 +25,8 @@ use bevy::prelude::*;
 use leocard_client::ShengjiScoreCaptureEffect;
 use leocard_protocol::ShengjiPhaseView;
 
-const SHENGJI_KITTY_CARD_INTERVAL: f32 = 0.075;
 pub(super) const SHENGJI_SETTLEMENT_MODAL_DELAY: f32 = 3.38;
 pub(super) const SHENGJI_SETTLEMENT_ROW_INTERVAL: f32 = 0.18;
-const SHENGJI_KITTY_CARD_ENTRY_DURATION: f32 = 0.22;
 const SHENGJI_KITTY_MULTIPLIER_DELAY: f32 = 1.12;
 const SHENGJI_KITTY_MULTIPLIER_DURATION: f32 = 0.62;
 const SHENGJI_TOTAL_ABSORB_DELAY: f32 = 2.24;
@@ -139,7 +136,7 @@ fn spawn_shengji_score_capture(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(shengji_card_face(card, assets)),
+                ImageNode::new(assets.playing_cards.face(card)),
                 UiTransform::IDENTITY,
                 ActiveScoreCaptureCard {
                     source: card_source,
@@ -330,8 +327,8 @@ pub(crate) fn animate_shengji_settlement_visuals(
     }
     let elapsed = animation.elapsed;
     for (card, mut transform, mut image, mut visibility) in &mut visuals.p0() {
-        let delay = card.index as f32 * SHENGJI_KITTY_CARD_INTERVAL;
-        let raw = ((elapsed - delay) / SHENGJI_KITTY_CARD_ENTRY_DURATION).clamp(0.0, 1.0);
+        let delay = card.index as f32 * 0.075;
+        let raw = ((elapsed - delay) / 0.22).clamp(0.0, 1.0);
         let progress = ease_out_cubic(raw);
         *visibility = if raw > 0.0 {
             Visibility::Visible

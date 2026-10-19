@@ -9,9 +9,6 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{TextureViewDescriptor, TextureViewDimension};
 use std::f32::consts;
 
-const TRANSITION_SECONDS: f32 = 1.5;
-const SPIN_DEGREES_PER_SECOND: f32 = 2.0;
-
 pub(super) fn sync_background(
     client: Option<Res<ClientResource>>,
     appearance: Res<AppearancePreferences>,
@@ -45,6 +42,7 @@ pub(super) fn sync_background(
         }
     }
     if random_background
+        && game.is_some_and(|game| game.graph.is_none())
         && playback.needs_panorama()
         && let Some(version) = game.and_then(|game| matched_version(&game.round))
     {
@@ -100,10 +98,10 @@ pub(super) fn animate_background(
             panorama.ready = true;
         }
     }
-    playback.advance(time.delta_secs(), TRANSITION_SECONDS);
+    playback.advance(time.delta_secs(), 1.5);
     material.panorama = playback.panorama.clone();
     material.params = Vec4::new(
-        (playback.seconds * SPIN_DEGREES_PER_SECOND)
+        (playback.seconds * 2.0_f32)
             .to_radians()
             .rem_euclid(consts::TAU),
         playback.transition,

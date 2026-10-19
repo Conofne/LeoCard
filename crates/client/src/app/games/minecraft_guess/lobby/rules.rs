@@ -4,7 +4,7 @@ use crate::app::runtime::UiAssets;
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
 use leocard_minecraft_guess::{
-    GuessMode, GuessPool, MinecraftGuessRuleSet, RaceRules, TurnBasedRules,
+    GuessMode, GuessPool, MAX_GUESS_CHARACTERS, MinecraftGuessRuleSet, RaceRules, TurnBasedRules,
 };
 
 impl EditableRuleSet for MinecraftGuessRuleSet {
@@ -54,25 +54,25 @@ impl RulesEditor<'_, '_, '_> {
         match rules.mode {
             GuessMode::TurnBased => self.turn_based(),
             GuessMode::Race => self.race(),
+            GuessMode::Graph => self.graph(),
         }
         let options = *rules.options();
-        self.choice(
-            RuleChoice {
-                label: "答案范围",
-                help: "每局随机选取一个答案。",
-                values: &[GuessPool::Blocks, GuessPool::Items, GuessPool::Mixed],
-                current: options.pool,
-            },
-            |rules, value| rules.options_mut().pool = value,
-            |value| {
-                match value {
-                    GuessPool::Blocks => "方块",
-                    GuessPool::Items => "物品",
-                    GuessPool::Mixed => "方块与物品",
-                }
-                .to_owned()
-            },
-        );
+        if rules.mode != GuessMode::Graph {
+            self.choice(
+                RuleChoice {
+                    label: "答案范围",
+                    help: "每局随机选取一个答案。",
+                    values: if cfg!(debug_assertions) || cfg!(feature = "developer") {
+                        &GuessPool::ALL
+                    } else {
+                        &GuessPool::STANDARD
+                    },
+                    current: options.pool,
+                },
+                |rules, value| rules.options_mut().pool = value,
+                |value| value.label().to_owned(),
+            );
+        }
         let mut hints = rules;
         hints.options_mut().candidate_hints = !options.candidate_hints;
         hints.options_mut().allow_unknown_guesses = false;
@@ -97,9 +97,42 @@ impl RulesEditor<'_, '_, '_> {
             } else {
                 "关闭"
             },
-            "仅在关闭候选提示时可用。最多输入 10 个字，不存在的词也会记录。",
+            &format!(
+                "仅在关闭候选提示时可用。最多输入 {MAX_GUESS_CHARACTERS} 个字，不存在的词也会记录。"
+            ),
             (self.editable && !options.candidate_hints).then_some(unknown),
         );
+    }
+
+    fn graph(&mut self) {
+        self.choice(
+            RuleChoice {
+                label: "节点数量",
+                help: "轮流猜测任意未揭晓节点，猜中加 5 分。",
+                values: &[16, 24, 32],
+                current: self.rules.graph.nodes,
+            },
+            |rules, value| rules.graph.nodes = value,
+            |value| format!("{value} 个"),
+        );
+        for (label, enabled, change) in [
+            ("字数提示", self.rules.graph.show_character_count, 0),
+            ("未知关系方向", self.rules.graph.show_directions, 1),
+            ("包含标签", self.rules.graph.include_tags, 2),
+        ] {
+            let mut next = self.rules;
+            match change {
+                0 => next.graph.show_character_count = !enabled,
+                1 => next.graph.show_directions = !enabled,
+                _ => next.graph.include_tags = !enabled,
+            }
+            self.toggle(
+                label,
+                if enabled { "开启" } else { "关闭" },
+                "标签在全部相邻节点揭晓后自动解锁，不参与计分。",
+                self.editable.then_some(next),
+            );
+        }
     }
 
     fn turn_based(&mut self) {
@@ -158,7 +191,7 @@ impl RulesEditor<'_, '_, '_> {
         &mut self,
         label: &'static str,
         value: &str,
-        help: &'static str,
+        help: &str,
         toggled: Option<MinecraftGuessRuleSet>,
     ) {
         add_rule_config_row(
@@ -185,8 +218,7 @@ impl RulesEditor<'_, '_, '_> {
         let index = choice
             .values
             .iter()
-            .position(|value| *value == choice.current)
-            .expect("valid guessing rule");
+            .position(|value| *value == choice.current);
         let updated = |value: &T| {
             let mut rules = self.rules;
             set(&mut rules, *value);
@@ -201,12 +233,11 @@ impl RulesEditor<'_, '_, '_> {
                 help: choice.help,
                 editable: self.editable,
                 previous: index
-                    .checked_sub(1)
+                    .and_then(|index| index.checked_sub(1))
                     .filter(|_| self.editable)
                     .map(|index| updated(&choice.values[index])),
-                next: choice
-                    .values
-                    .get(index + 1)
+                next: index
+                    .and_then(|index| choice.values.get(index + 1))
                     .filter(|_| self.editable)
                     .map(updated),
             },

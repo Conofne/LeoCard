@@ -1,8 +1,9 @@
 //! 客户端支持的游戏目录与大厅摘要。
 
 use crate::app::presentation::time_control_label;
+use leocard_blackjack::BlackjackRuleSet;
 use leocard_mahjong::{MahjongMatchLength, MahjongRuleSet};
-use leocard_minecraft_guess::{GuessMode, GuessPool, MinecraftGuessRuleSet};
+use leocard_minecraft_guess::{GuessMode, MinecraftGuessRuleSet};
 use leocard_protocol::{GameKind, GameRules, TABLE_SEAT_COUNT};
 use leocard_shengji::ShengjiRuleSet;
 use leocard_uno::UnoRuleSet;
@@ -14,7 +15,7 @@ pub(crate) struct GameDescriptor {
     pub description: &'static str,
 }
 
-pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 6] = [
+pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 7] = [
     GameDescriptor {
         kind: GameKind::QiGui523,
         title: "七鬼五二三",
@@ -45,10 +46,16 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 6] = [
         title: "MC竞猜",
         description: "就你是 MC 高玩啊?",
     },
+    GameDescriptor {
+        kind: GameKind::Blackjack,
+        title: "21 点",
+        description: "再来一张，还是见好就收？",
+    },
 ];
 
 pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
     match rules {
+        GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
         GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
         GameRules::Mahjong(_) => MahjongRuleSet::PLAYER_COUNT as u8,
@@ -59,16 +66,17 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
 
 pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
     match rules {
+        GameRules::Blackjack(rules) => [
+            format!("{} 筹码", rules.initial_chips),
+            format!("{} 局", rules.rounds),
+            "系统庄家".to_owned(),
+        ],
         GameRules::MinecraftGuess(rules) => [
-            match rules.options().pool {
-                GuessPool::Blocks => "方块",
-                GuessPool::Items => "物品",
-                GuessPool::Mixed => "方块 / 物品",
-            }
-            .to_owned(),
+            rules.options().pool.label().to_owned(),
             rules.mode.label().to_owned(),
             match rules.mode {
                 GuessMode::TurnBased => "允许跳过".to_owned(),
+                GuessMode::Graph => format!("{} 个节点 · 猜中 +5", rules.graph.nodes),
                 GuessMode::Race => format!("{} 秒 / {} 局", rules.race.seconds, rules.race.games),
             },
         ],

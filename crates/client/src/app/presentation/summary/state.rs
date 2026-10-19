@@ -4,13 +4,11 @@ use bevy::prelude::*;
 use leocard_protocol::MatchId;
 
 pub(crate) const SUMMARY_MODAL_ENTRY_DURATION: f32 = 0.55;
-pub(crate) const SUMMARY_HAND_REVEAL_DURATION: f32 = 1.5;
 pub(crate) const SUMMARY_ROW_START_DELAY: f32 = 0.38;
 pub(crate) const SUMMARY_ROW_INTERVAL: f32 = 0.18;
 pub(crate) const SUMMARY_ROW_ENTRY_DURATION: f32 = 0.32;
 pub(super) const SUMMARY_SCORE_COUNT_DURATION: f32 = 0.72;
 pub(crate) const SUMMARY_ACTIONS_EXTRA_DELAY: f32 = 0.30;
-pub(crate) const TEXAS_UNCONTESTED_REVEAL_DURATION: f32 = 0.8;
 
 #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct SummaryAnimationSet;
@@ -18,7 +16,7 @@ pub(crate) struct SummaryAnimationSet;
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct SummaryDescriptor {
     pub match_id: MatchId,
-    pub texas_hand_number: Option<u32>,
+    /// 同一场游戏内的结算序号，由各游戏自行提供。
     pub settlement_index: Option<u32>,
     pub entry_count: usize,
     pub nonnegative_outcome: bool,
@@ -35,7 +33,6 @@ pub(crate) struct SummaryPlayback {
 #[derive(Resource, Default)]
 pub(crate) struct GameSummaryAnimation {
     pub match_id: Option<MatchId>,
-    pub texas_hand_number: Option<u32>,
     pub settlement_index: Option<u32>,
     pub entry_count: usize,
     pub elapsed: f32,
@@ -47,6 +44,7 @@ pub(crate) struct GameSummaryAnimation {
 pub(crate) struct AnimatedSummaryScore {
     pub target: u32,
     pub delay: f32,
+    pub unit: &'static str,
 }
 
 #[derive(Component)]

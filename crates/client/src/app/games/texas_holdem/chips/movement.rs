@@ -2,10 +2,10 @@
 
 use super::denominations::{canonical_chip_denominations, change_for};
 use super::{
-    CHIP_MOVE_DURATION, CHIP_SIZE, ChipMotion, ChipZone, ChipZoneLayout, DENOMINATIONS, TableChip,
-    TexasChipTableState, random_signed, random_unit, texas_player_chip_zone, texas_pot_chip_zone,
-    texas_pot_partition_zone,
+    CHIP_SIZE, ChipMotion, ChipZone, ChipZoneLayout, DENOMINATIONS, TableChip, TexasChipTableState,
+    texas_player_chip_zone, texas_pot_chip_zone, texas_pot_partition_zone,
 };
+use crate::app::presentation::{table_random_signed, table_random_unit};
 use bevy::prelude::*;
 use leocard_protocol::{PlayerId, TABLE_SEAT_COUNT};
 
@@ -61,17 +61,11 @@ impl TexasChipTableState {
                 self.select_exact(provider, u32::from(denomination), Some(denomination))
             {
                 let provider_center = self.zone_layout(provider).center();
-                self.move_chip(chip_id, provider, provider_center, 0.0, CHIP_MOVE_DURATION);
+                self.move_chip(chip_id, provider, provider_center, 0.0, 0.42);
                 for (offset, id) in change_ids.into_iter().enumerate() {
                     let destination = player.map_or(source_zone, ChipZone::Stack);
                     let target = player.map_or(source_position, |owner| self.stack_anchor(owner));
-                    self.move_chip(
-                        id,
-                        destination,
-                        target,
-                        0.08 + offset as f32 * 0.025,
-                        CHIP_MOVE_DURATION,
-                    );
+                    self.move_chip(id, destination, target, 0.08 + offset as f32 * 0.025, 0.42);
                 }
                 return;
             }
@@ -81,23 +75,11 @@ impl TexasChipTableState {
         let exchange_point = player
             .map(|owner| self.zone_layout(ChipZone::Bet(owner)).center())
             .unwrap_or_else(|| self.zone_layout(ChipZone::Pot(0)).center());
-        self.move_chip(
-            chip_id,
-            ChipZone::Retired,
-            exchange_point,
-            0.0,
-            CHIP_MOVE_DURATION * 0.65,
-        );
+        self.move_chip(chip_id, ChipZone::Retired, exchange_point, 0.0, 0.42 * 0.65);
         for (offset, replacement) in change_for(denomination).into_iter().enumerate() {
             let id = self.spawn_chip(replacement, source_zone, exchange_point);
             let target = player.map_or(source_position, |owner| self.stack_anchor(owner));
-            self.move_chip(
-                id,
-                source_zone,
-                target,
-                0.16 + offset as f32 * 0.025,
-                CHIP_MOVE_DURATION,
-            );
+            self.move_chip(id, source_zone, target, 0.16 + offset as f32 * 0.025, 0.42);
         }
     }
 
@@ -152,7 +134,7 @@ impl TexasChipTableState {
             denomination,
             zone,
             position,
-            rotation: random_signed(id, 91) * 0.16,
+            rotation: table_random_signed(id, 91) * 0.16,
             motion: None,
         });
         id
@@ -169,7 +151,7 @@ impl TexasChipTableState {
         let Some(chip) = self.chips.iter_mut().find(|chip| chip.id == id) else {
             return;
         };
-        let target_rotation = random_signed(id, self.event_serial) * 0.22;
+        let target_rotation = table_random_signed(id, self.event_serial) * 0.22;
         chip.zone = zone;
         chip.motion = Some(ChipMotion {
             start: chip.position,
@@ -222,8 +204,8 @@ impl TexasChipTableState {
 
     pub(super) fn scatter_target(&self, zone: ChipZone, id: u64) -> Vec2 {
         let area = self.zone_layout(zone);
-        let horizontal = random_unit(id, self.event_serial.wrapping_add(17));
-        let vertical = random_unit(id, self.event_serial.wrapping_add(43));
+        let horizontal = table_random_unit(id, self.event_serial.wrapping_add(17));
+        let vertical = table_random_unit(id, self.event_serial.wrapping_add(43));
         Vec2::new(
             area.left + 9.0 + horizontal * (area.width - CHIP_SIZE - 18.0).max(1.0),
             area.top + 30.0 + vertical * (area.height - CHIP_SIZE - 35.0).max(1.0),

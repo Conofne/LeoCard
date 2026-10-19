@@ -5,10 +5,10 @@ use super::super::{
     ShengjiSettlementOutcomeText, ShengjiSettlementPanelTexture, ShengjiSettlementRow,
     ShengjiSettlementTotalAnchor, ShengjiSettlementTotalText, ShengjiTimedReveal,
 };
-use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_card_face, shengji_display_trump};
+use super::{ShengjiCardSize, add_shengji_trump_stars, shengji_display_trump};
 use crate::app::presentation::{
-    ACCENT, DANGER, MUTED, PanelSkin, READY, TEXT, UiComposer, add_ready_avatar, add_text,
-    decorate_panel_skin, spawn_node,
+    ACCENT, DANGER, MUTED, PanelSkin, PlayerMenuProfile, READY, TEXT, UiComposer, add_ready_avatar,
+    add_text, decorate_panel_skin, spawn_node,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -18,9 +18,6 @@ use bevy::picking::Pickable;
 use bevy::prelude::*;
 use leocard_protocol::{ShengjiHandResultView, ShengjiSnapshot};
 use leocard_shengji::ShengjiCard;
-
-const SHENGJI_KITTY_SCORE_DELAY: f32 = 0.72;
-const SHENGJI_TOTAL_LABEL_DELAY: f32 = 1.92;
 
 #[expect(
     clippy::too_many_arguments,
@@ -94,7 +91,7 @@ pub(super) fn add_shengji_result(
                     border_radius: BorderRadius::all(px(4)),
                     ..default()
                 },
-                ImageNode::new(shengji_card_face(card, assets)).with_color(Color::NONE),
+                ImageNode::new(assets.playing_cards.face(card)).with_color(Color::NONE),
                 UiTransform {
                     translation: Val2::px(0.0, 16.0),
                     scale: Vec2::splat(0.78),
@@ -141,12 +138,9 @@ pub(super) fn add_shengji_result(
         },
         None,
     );
-    commands.entity(kitty_score_line).insert((
-        ShengjiTimedReveal {
-            delay: SHENGJI_KITTY_SCORE_DELAY,
-        },
-        Visibility::Hidden,
-    ));
+    commands
+        .entity(kitty_score_line)
+        .insert((ShengjiTimedReveal { delay: 0.72 }, Visibility::Hidden));
     add_text(commands, kitty_score_line, "底牌分数", 14.0, MUTED, assets);
     let kitty_score = add_text(
         commands,
@@ -201,12 +195,9 @@ pub(super) fn add_shengji_result(
         },
         None,
     );
-    commands.entity(total_box).insert((
-        ShengjiTimedReveal {
-            delay: SHENGJI_TOTAL_LABEL_DELAY,
-        },
-        Visibility::Hidden,
-    ));
+    commands
+        .entity(total_box)
+        .insert((ShengjiTimedReveal { delay: 1.92 }, Visibility::Hidden));
     add_text(commands, total_box, "闲家总得分", 13.0, MUTED, assets);
     let total_text = add_text(commands, total_box, "0", 28.0, ACCENT, assets);
     commands.entity(total_text).insert((
@@ -327,8 +318,14 @@ fn add_shengji_settlement_modal(
         add_ready_avatar(
             commands,
             row,
-            &player.name,
-            avatar,
+            player.id,
+            PlayerMenuProfile {
+                name: &player.name,
+                avatar,
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
             28.0,
             player.ready,
             assets,

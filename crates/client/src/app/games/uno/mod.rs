@@ -3,8 +3,10 @@
 pub(crate) mod actions;
 mod assets;
 mod audio;
+mod card_paths;
 mod cards;
 mod controls;
+mod drag;
 mod hand;
 mod interaction;
 mod jump_in_device;
@@ -18,7 +20,6 @@ mod presentation;
 pub(super) mod settlement;
 mod state;
 mod view;
-pub(super) mod violation;
 
 pub(crate) use actions::*;
 pub(crate) use assets::*;
@@ -39,3 +40,5 @@ pub(crate) use state::*;
 pub(crate) use view::*;
 
 use modal::advance_uno_modal;
+
+pub(crate) use card_paths::uno_card_asset_path;

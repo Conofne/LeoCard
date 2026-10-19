@@ -51,7 +51,7 @@ pub(super) fn animate_texas_showdown_reveal(
     mut title_texts: Query<&mut TextColor, With<TexasShowdownTitleText>>,
 ) {
     let elapsed = animation.elapsed + TEXAS_SHOWDOWN_REVEAL_DURATION;
-    let active = animation.texas_hand_number.is_some() && animation.elapsed < 0.0 && elapsed >= 0.0;
+    let active = animation.match_id.is_some() && animation.elapsed < 0.0 && elapsed >= 0.0;
     for mut visibility in &mut roots {
         *visibility = if active {
             Visibility::Visible

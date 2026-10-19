@@ -1,13 +1,14 @@
 use super::super::MinecraftGuessAssets;
+use super::super::assets::EntryIcons;
 use super::super::feedback::GuessCellReveal;
-use super::super::icons::EntryIcons;
+use super::details::AttributeHint;
 use super::names::GuessName;
 use super::style::{SEPARATOR_COLOR, SEPARATOR_WIDTH};
 use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use bevy::picking::Pickable;
 use bevy::prelude::*;
-use leocard_minecraft_guess::MatchQuality;
+use leocard_minecraft_guess::{Attribute, MatchQuality};
 
 pub(super) enum CellSkin {
     Heading,
@@ -31,6 +32,7 @@ pub(super) struct TableCell {
     container: Entity,
     content: Entity,
     color: Color,
+    compact: bool,
 }
 
 impl TableCell {
@@ -40,6 +42,7 @@ impl TableCell {
         width: f32,
         skin: CellSkin,
         assets: &MinecraftGuessAssets,
+        compact: bool,
     ) -> Self {
         let container = spawn_node(
             commands,
@@ -48,7 +51,7 @@ impl TableCell {
                 width: percent(width),
                 min_width: px(0),
                 flex_shrink: 0.0,
-                padding: UiRect::all(px(8)),
+                padding: UiRect::all(px(if compact { 4.0 } else { 8.0 })),
                 border: UiRect {
                     right: px(SEPARATOR_WIDTH),
                     bottom: px(SEPARATOR_WIDTH),
@@ -90,6 +93,7 @@ impl TableCell {
             container,
             content,
             color: skin.color(),
+            compact,
         }
     }
 
@@ -104,7 +108,31 @@ impl TableCell {
     }
 
     pub fn label(&self, commands: &mut UiComposer, text: &str, assets: &UiAssets) {
-        self.text(commands, text, 18.0, TEXT, assets);
+        self.text(
+            commands,
+            text,
+            if self.compact { 13.0 } else { 18.0 },
+            TEXT,
+            assets,
+        );
+    }
+
+    pub fn details(
+        &self,
+        commands: &mut UiComposer,
+        layer: Entity,
+        attribute: &Attribute,
+        assets: &UiAssets,
+        game_assets: &MinecraftGuessAssets,
+    ) {
+        AttributeHint::spawn(
+            commands,
+            layer,
+            self.content,
+            attribute,
+            assets,
+            game_assets,
+        );
     }
 
     pub fn guess(
@@ -131,9 +159,21 @@ impl TableCell {
         );
         commands.entity(group).insert(Pickable::IGNORE);
         if let Some(icon) = icon {
-            EntryIcons::spawn(commands, group, icon, 32.0);
+            EntryIcons::spawn(
+                commands,
+                group,
+                icon,
+                if self.compact { 24.0 } else { 32.0 },
+            );
         }
-        let label = add_text(commands, group, name, 18.0, TEXT, assets);
+        let label = add_text(
+            commands,
+            group,
+            name,
+            if self.compact { 14.0 } else { 18.0 },
+            TEXT,
+            assets,
+        );
         commands.entity(label).insert((
             GuessName,
             Pickable::IGNORE,
@@ -143,7 +183,13 @@ impl TableCell {
                 ..default()
             },
         ));
-        self.text(commands, player, 14.0, MUTED, assets);
+        self.text(
+            commands,
+            player,
+            if self.compact { 11.0 } else { 14.0 },
+            MUTED,
+            assets,
+        );
     }
 
     fn text(

@@ -1,10 +1,11 @@
 use super::UNO_FINISH_REVEAL_DURATION;
 use crate::app::presentation::{
     ACCENT, AnimatedSummaryScore, DANGER, GameSummaryActions, GameSummaryAnimation,
-    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin, READY,
-    SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL, SUMMARY_ROW_START_DELAY, SummaryDescriptor,
-    TEXT, UiComposer, add_animated_summary_text, add_ready_avatar, animated_summary_score,
-    decorate_panel_skin, spawn_node, summary_modal_visual, summary_row_progress,
+    GameSummaryModal, GameSummaryPanelTexture, GameSummaryRow, MUTED, PANEL_ALT, PanelSkin,
+    PlayerMenuProfile, READY, SUMMARY_ACTIONS_EXTRA_DELAY, SUMMARY_ROW_INTERVAL,
+    SUMMARY_ROW_START_DELAY, SummaryDescriptor, TEXT, UiComposer, add_animated_summary_text,
+    add_ready_avatar, animated_summary_score, decorate_panel_skin, spawn_node,
+    summary_modal_visual, summary_row_progress,
 };
 use crate::app::runtime::{AvatarImages, UiAssets};
 use crate::app::shell::{
@@ -28,7 +29,6 @@ pub(crate) fn uno_summary_descriptor(game: &UnoSnapshot) -> Option<SummaryDescri
     };
     Some(SummaryDescriptor {
         match_id: game.match_id,
-        texas_hand_number: None,
         settlement_index: None,
         entry_count: results.len(),
         nonnegative_outcome: reference_changes
@@ -172,8 +172,14 @@ pub(super) fn add_uno_summary(
         add_ready_avatar(
             commands,
             row,
-            &player.name,
-            avatar,
+            player.id,
+            PlayerMenuProfile {
+                name: &player.name,
+                avatar,
+                reference_points: player.reference_points,
+                completed_games: player.completed_games,
+                game_profiles: &player.game_profiles,
+            },
             28.0,
             player.ready,
             assets,
@@ -243,6 +249,7 @@ pub(super) fn add_uno_summary(
             commands.entity(score_text).insert(AnimatedSummaryScore {
                 target: u32::from(result.hand_score),
                 delay,
+                unit: "分",
             });
         }
         let delta = reference_changes

@@ -3,8 +3,7 @@ use crate::{ConnectionId, Delivery, RoomSession, lifecycle::HostedGameLifecycle}
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
     GameCommand, GameKind, GameRules, GameSnapshot, GameViolation, MinecraftGuessSnapshot,
-    PlayerId, PlayerInteractionKind, PlayerScore, PlayerViolation, RejectReason, RequestId,
-    RoomViolation, ServerEvent,
+    PlayerId, PlayerScore, RejectReason, RequestId, RoomViolation, ServerEvent,
 };
 
 impl HostedGameLifecycle for MinecraftGuessSession {
@@ -45,6 +44,7 @@ impl HostedGameLifecycle for MinecraftGuessSession {
             rules: self.rules,
             progress: self.match_state.as_ref().expect("active match").progress(),
             round: self.game.as_ref().expect("active game").view(),
+            graph: self.game.as_ref().expect("active game").graph_view(),
             guess_seconds_remaining: self.guess_seconds_remaining(),
             scores: self
                 .match_state
@@ -81,42 +81,30 @@ impl HostedGameLifecycle for MinecraftGuessSession {
     }
 
     fn start_game(&mut self, connection: ConnectionId, request: RequestId) -> Vec<Delivery> {
-        let validation = self.require_player(connection).and_then(|_| {
-            if !self.rules.is_valid() {
-                return Err(RejectReason::Game(GameViolation::InvalidRuleConfiguration));
-            }
-            if self.game.is_some() {
-                return Err(RejectReason::Game(GameViolation::GameAlreadyStarted));
-            }
-            if self.host_connection != Some(connection) {
-                return Err(RejectReason::Room(RoomViolation::OnlyHostCanStart));
-            }
-            let players: Vec<_> = self.players.iter().filter(|player| !player.left).collect();
-            if players.len() < usize::from(MinecraftGuessRuleSet::MIN_PLAYERS) {
-                return Err(RejectReason::Room(RoomViolation::NotEnoughPlayers {
-                    minimum: MinecraftGuessRuleSet::MIN_PLAYERS,
-                    actual: players.len() as u8,
-                }));
-            }
-            if players.iter().any(|player| player.seat.is_none()) {
-                return Err(RejectReason::Room(RoomViolation::MustSelectSeat));
-            }
-            let unready: Vec<_> = players
-                .iter()
-                .filter(|player| !player.ready || (!player.connected && !player.is_bot))
-                .map(|player| player.id)
-                .collect();
-            if !unready.is_empty() {
-                return Err(RejectReason::Room(RoomViolation::PlayersNotReady {
-                    players: unready,
-                }));
-            }
-            Ok(())
-        });
+        let validation = self
+            .room
+            .validate_start(
+                connection,
+                MinecraftGuessRuleSet::MIN_PLAYERS,
+                self.game.is_some(),
+            )
+            .and_then(|()| {
+                if self.rules.is_valid() {
+                    Ok(())
+                } else {
+                    Err(RejectReason::Game(GameViolation::InvalidRuleConfiguration))
+                }
+            });
         if let Err(reason) = validation {
             return self.reject(connection, request, reason);
         }
-        self.begin_match();
+        if let Err(error) = self.begin_match() {
+            return self.reject(
+                connection,
+                request,
+                RejectReason::Game(GameViolation::MinecraftGuess(error)),
+            );
+        }
         self.broadcast_game(Some((connection, request)))
     }
 
@@ -159,8 +147,13 @@ impl HostedGameLifecycle for MinecraftGuessSession {
         if !players.is_empty()
             && (continuing || players.len() >= 2)
             && players.iter().all(|player| player.ready)
+            && let Err(error) = self.continue_match()
         {
-            self.continue_match();
+            return self.reject(
+                connection,
+                request,
+                RejectReason::Game(GameViolation::MinecraftGuess(error)),
+            );
         }
         self.broadcast_game(Some((connection, request)))
     }
@@ -189,43 +182,6 @@ impl HostedGameLifecycle for MinecraftGuessSession {
             self.broadcast_lobby(None)
         });
         deliveries
-    }
-
-    fn interact(
-        &mut self,
-        connection: ConnectionId,
-        request: RequestId,
-        target: PlayerId,
-        kind: PlayerInteractionKind,
-    ) -> Vec<Delivery> {
-        let result = self.require_player(connection).and_then(|source| {
-            if self.game.is_none() {
-                return Err(RejectReason::Game(GameViolation::GameNotStarted));
-            }
-            if source == target {
-                return Err(RejectReason::Room(RoomViolation::CannotInteractWithSelf));
-            }
-            if !self
-                .players
-                .iter()
-                .any(|player| player.id == target && !player.left)
-            {
-                return Err(RejectReason::Player(PlayerViolation::NotJoined));
-            }
-            Ok(self
-                .room
-                .record_interaction(source, target, kind, fastrand::u32(..)))
-        });
-        match result {
-            Ok(interaction) => {
-                self.bump_revision();
-                self.room.broadcast_event(
-                    Some((connection, request)),
-                    ServerEvent::PlayerInteraction(interaction),
-                )
-            }
-            Err(reason) => self.reject(connection, request, reason),
-        }
     }
 }
 
