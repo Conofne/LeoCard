@@ -120,17 +120,15 @@ fn five_consistent_games_survive_reload_but_a_failure_resets_the_streak() {
 }
 
 #[test]
-fn collecting_all_entries_counts_block_and_item_ids_separately_and_persists() {
+fn collecting_all_entries_requires_every_block_and_item_and_persists() {
     let mut book = AchievementBook::default();
     let entries: Vec<_> = Catalogue::bundled().entries(GuessPool::Mixed).collect();
     let mut kinds = BTreeSet::new();
     for (index, entry) in entries.iter().enumerate() {
-        // Keep one wheat entry missing even though its other kind is collected.
-        if entry.id == "minecraft:wheat" {
-            kinds.insert(entry.kind.label());
-            if entry.kind == EntryKind::Item {
-                continue;
-            }
+        kinds.insert(entry.kind.label());
+        // Wheat is an item-only entry; leave it missing while collecting all blocks.
+        if entry.id == "minecraft:wheat" && entry.kind == EntryKind::Item {
+            continue;
         }
         book.trigger(
             &win(&entry.id, entry.kind),
@@ -146,14 +144,20 @@ fn collecting_all_entries_counts_block_and_item_ids_separately_and_persists() {
     assert!(book.achieved(definition("all_versions")));
     book = reload(&book);
     book.trigger(
-        &win("minecraft:wheat", EntryKind::Block),
+        &win("minecraft:stone", EntryKind::Block),
         context(2, 0, 1),
         11,
     );
     assert!(!book.achieved(definition("all_entries")));
     book.trigger(
-        &win("minecraft:wheat", EntryKind::Item),
+        &win("minecraft:wheat", EntryKind::Block),
         context(2, 1, 2),
+        11,
+    );
+    assert!(!book.achieved(definition("all_entries")));
+    book.trigger(
+        &win("minecraft:wheat", EntryKind::Item),
+        context(2, 2, 3),
         12,
     );
     assert!(book.achieved(definition("all_entries")));
