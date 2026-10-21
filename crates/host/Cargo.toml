@@ -11,16 +11,16 @@ default = []
 developer = ["leocard-qigui523/developer", "leocard-minecraft-guess/developer"]
 
 [dependencies]
-leocard-blackjack = { path = "../games/blackjack" }
-leocard-game-common = { path = "../games/common" }
-leocard-minecraft-guess = { path = "../games/minecraft-guess" }
-leocard-achievements = { path = "../achievements" }
 ed25519-dalek.workspace = true
 fastrand.workspace = true
 image.workspace = true
+leocard-achievements = { path = "../games/achievements" }
+leocard-blackjack = { path = "../games/blackjack" }
+leocard-game-common = { path = "../games/common" }
 leocard-mahjong = { path = "../games/mahjong" }
+leocard-minecraft-guess = { path = "../games/minecraft-guess" }
+leocard-protocol = { path = "../network/protocol" }
 leocard-qigui523 = { path = "../games/qigui523" }
 leocard-shengji = { path = "../games/shengji" }
 leocard-texas-holdem = { path = "../games/texas-holdem" }
 leocard-uno = { path = "../games/uno" }
-leocard-protocol = { path = "../protocol" }

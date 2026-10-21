@@ -1,11 +1,11 @@
-use super::{ItemId, rewards::login_day, storage::EconomyArchive};
+use super::ItemId;
+use super::rewards::login_day;
+use super::storage::EconomyArchive;
 use bevy::prelude::Resource;
 use leocard_achievements::AchievementDefinition;
 use leocard_protocol::{MatchId, PlayerReferenceChange, ProfileId};
-use std::{
-    mem,
-    time::{self, SystemTime},
-};
+use std::mem;
+use std::time::{self, SystemTime};
 
 #[derive(Resource)]
 pub struct PlayerEconomy {

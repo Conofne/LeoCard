@@ -3464,14 +3464,6 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 name = "leocard-achievements"
 version = "0.9.3"
 dependencies = [
- "leocard-mahjong",
- "leocard-minecraft-guess",
- "leocard-protocol",
- "leocard-qigui523",
- "leocard-shengji",
- "leocard-texas-holdem",
- "leocard-uno",
- "postcard",
  "serde",
 ]
 
@@ -3547,6 +3539,7 @@ dependencies = [
 name = "leocard-mahjong"
 version = "0.9.3"
 dependencies = [
+ "leocard-achievements",
  "leocard-game-common",
  "serde",
 ]
@@ -3557,6 +3550,7 @@ version = "0.9.3"
 dependencies = [
  "csv",
  "fastrand",
+ "leocard-achievements",
  "leocard-game-common",
  "serde",
  "serde_json",
@@ -3566,6 +3560,7 @@ dependencies = [
 name = "leocard-protocol"
 version = "0.9.3"
 dependencies = [
+ "leocard-achievements",
  "leocard-blackjack",
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3581,6 +3576,7 @@ dependencies = [
 name = "leocard-qigui523"
 version = "0.9.3"
 dependencies = [
+ "leocard-achievements",
  "leocard-game-common",
  "serde",
 ]
@@ -3599,6 +3595,7 @@ dependencies = [
 name = "leocard-shengji"
 version = "0.9.3"
 dependencies = [
+ "leocard-achievements",
  "leocard-game-common",
  "serde",
 ]
@@ -3624,6 +3621,7 @@ dependencies = [
 name = "leocard-texas-holdem"
 version = "0.9.3"
 dependencies = [
+ "leocard-achievements",
  "leocard-game-common",
  "serde",
 ]
@@ -3632,6 +3630,7 @@ dependencies = [
 name = "leocard-uno"
 version = "0.9.3"
 dependencies = [
+ "leocard-achievements",
  "leocard-game-common",
  "serde",
 ]

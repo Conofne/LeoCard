@@ -26,24 +26,24 @@ developer = [
 embedded-assets = []
 
 [dependencies]
-leocard-blackjack = { path = "../games/blackjack" }
-leocard-minecraft-guess = { path = "../games/minecraft-guess" }
-leocard-achievements = { path = "../achievements" }
 bevy.workspace = true
 bevy_clipboard.workspace = true
-icu_provider.workspace = true
 ed25519-dalek.workspace = true
-leocard-qigui523 = { path = "../games/qigui523" }
-leocard-mahjong = { path = "../games/mahjong" }
-leocard-shengji = { path = "../games/shengji" }
-leocard-texas-holdem = { path = "../games/texas-holdem" }
-leocard-uno = { path = "../games/uno" }
-leocard-host = { path = "../host" }
-leocard-protocol = { path = "../protocol" }
-leocard-tcp = { path = "../tcp" }
 fastrand.workspace = true
 getrandom.workspace = true
+icu_provider.workspace = true
 image.workspace = true
+leocard-achievements = { path = "../games/achievements" }
+leocard-blackjack = { path = "../games/blackjack" }
+leocard-host = { path = "../host" }
+leocard-mahjong = { path = "../games/mahjong" }
+leocard-minecraft-guess = { path = "../games/minecraft-guess" }
+leocard-protocol = { path = "../network/protocol" }
+leocard-qigui523 = { path = "../games/qigui523" }
+leocard-shengji = { path = "../games/shengji" }
+leocard-tcp = { path = "../network/tcp" }
+leocard-texas-holdem = { path = "../games/texas-holdem" }
+leocard-uno = { path = "../games/uno" }
 postcard.workspace = true
 reqwest.workspace = true
 semver.workspace = true
@@ -53,10 +53,10 @@ tokio.workspace = true
 winit.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-leocard-sakura-frp = { path = "../sakura-frp" }
 bevy = { workspace = true, features = ["custom_cursor"] }
-rfd.workspace = true
 bevy_clipboard = { workspace = true, features = ["system_clipboard"] }
+leocard-sakura-frp = { path = "../network/sakura-frp" }
+rfd.workspace = true
 sysinfo = { workspace = true, features = ["system"] }
 
 [target.'cfg(target_os = "android")'.dependencies]

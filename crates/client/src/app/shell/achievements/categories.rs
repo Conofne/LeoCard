@@ -6,7 +6,8 @@ use bevy::ui_widgets::Button;
 
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_achievements::achievements_in;
+
+use leocard_protocol::ACHIEVEMENT_REGISTRY;
 
 use super::input::category_tint;
 use super::page::AchievementsPage;
@@ -117,7 +118,7 @@ impl AchievementsPage<'_> {
                 track,
                 Node {
                     width: percent({
-                        let definitions = achievements_in(tab).collect::<Vec<_>>();
+                        let definitions = ACHIEVEMENT_REGISTRY.in_category(tab).collect::<Vec<_>>();
                         if definitions.is_empty() {
                             0.0
                         } else {

@@ -1,19 +1,19 @@
 [workspace]
 members = [
+    "crates/games/achievements",
     "crates/games/blackjack",
     "crates/games/common",
-    "crates/achievements",
-    "crates/client",
     "crates/games/mahjong",
     "crates/games/minecraft-guess",
-    "crates/sakura-frp",
     "crates/games/qigui523",
     "crates/games/shengji",
     "crates/games/texas-holdem",
     "crates/games/uno",
+    "crates/network/protocol",
+    "crates/network/sakura-frp",
+    "crates/network/tcp",
     "crates/host",
-    "crates/protocol",
-    "crates/tcp",
+    "crates/client",
 ]
 resolver = "3"
 
@@ -24,7 +24,6 @@ license = "GPL-3.0-only"
 rust-version = "1.99.1"
 
 [workspace.dependencies]
-csv = "1.4"
 bevy = { version = "0.20", default-features = false, features = [
     "std",
     "async_executor",
@@ -47,26 +46,28 @@ bevy = { version = "0.20", default-features = false, features = [
     "x11",
 ] }
 bevy_clipboard = { version = "0.20", default-features = false }
+csv = "1.4"
+ed25519-dalek = "3.0"
+fastrand = "2.5"
+getrandom = "0.4"
 # Route ICU diagnostics through Bevy's logger instead of debug-only stderr output.
 icu_provider = { version = "2.3", default-features = false, features = [
     "logging",
 ] }
-ed25519-dalek = "3.0"
-fastrand = "2.5"
-getrandom = "0.4"
 image = { version = "0.25", default-features = false, features = [
     "png",
     "jpeg",
 ] }
 jni = { version = "0.22.4", default-features = false }
+md-5 = "0.10"
 postcard = { version = "1.1", features = ["alloc"] }
-rfd = "0.17"
 reqwest = { version = "0.13", default-features = false, features = [
     "blocking",
     "form",
     "json",
     "rustls",
 ] }
+rfd = "0.17"
 rustls-platform-verifier = "0.7.1"
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -82,9 +83,8 @@ tokio = { version = "1.53", features = [
     "sync",
     "time",
 ] }
-winresource = "0.1"
 winit = { version = "0.30", default-features = false }
-md-5 = "0.10"
+winresource = "0.1"
 
 [profile.release]
 opt-level = 3

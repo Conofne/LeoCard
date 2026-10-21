@@ -4,6 +4,8 @@
 //! 产生随机数，因此相同的牌序与玩家操作一定会得到相同结果，便于联网同步、回放
 //! 和测试。
 
+pub mod achievements;
+
 mod bot;
 mod card;
 mod game;

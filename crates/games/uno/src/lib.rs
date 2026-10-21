@@ -3,6 +3,8 @@
 //! 牌堆由房主洗牌后传入；核心负责经典 108 张牌的校验、发牌、出牌、罚牌叠加、
 //! `+4` 质疑、UNO 宣告/检举，以及最终排名和参考积分计算。
 
+pub mod achievements;
+
 mod card;
 mod game;
 mod rating;

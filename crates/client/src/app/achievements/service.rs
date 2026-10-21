@@ -31,7 +31,7 @@ pub(super) fn setup_book(
             None,
         );
     }
-    profile.game_profiles.achievements = book.counts();
+    profile.game_profiles.achievements = book.counts().into();
     commands.insert_resource(book);
 }
 
@@ -83,7 +83,7 @@ pub(super) fn commit_progress(
             recipient: AchievementRecipient::Local,
         });
     }
-    let counts = book.counts();
+    let counts = book.counts().into();
     if profile.game_profiles.achievements != counts {
         profile.game_profiles.achievements = counts;
         ui.dirty = true;

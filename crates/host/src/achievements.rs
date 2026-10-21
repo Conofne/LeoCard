@@ -2,10 +2,9 @@
 //! The host validates publications; it never evaluates local achievement criteria.
 
 use crate::{ConnectionId, Delivery, RoomSession};
-use leocard_achievements::{ACHIEVEMENT_REGISTRY, achievement_by_id, achievement_counts};
 use leocard_protocol::{
-    AchievementAnnouncement, AchievementCounts, PlayerViolation, ProfileId, RejectReason,
-    RequestId, ServerEvent,
+    ACHIEVEMENT_REGISTRY, AchievementAnnouncement, AchievementCounts, PlayerViolation, ProfileId,
+    RejectReason, RequestId, ServerEvent,
 };
 use std::collections::HashSet;
 
@@ -31,16 +30,18 @@ impl RoomSession {
         let changed = player.game_profiles.achievements != counts;
         let profile_id = player.profile_id;
         let new = counts.by_tier();
-        let maximum =
-            achievement_counts(ACHIEVEMENT_REGISTRY.iter().map(|definition| definition.id))
-                .by_tier();
+        let maximum = ACHIEVEMENT_REGISTRY
+            .counts(ACHIEVEMENT_REGISTRY.iter().map(|definition| definition.id))
+            .by_tier();
         if new.iter().zip(old).any(|(new, old)| *new < old)
             || new
                 .iter()
                 .zip(maximum)
                 .any(|(count, maximum)| *count > maximum)
             || unlocked.len() > ACHIEVEMENT_REGISTRY.len()
-            || unlocked.iter().any(|id| achievement_by_id(id).is_none())
+            || unlocked
+                .iter()
+                .any(|id| ACHIEVEMENT_REGISTRY.by_id(id).is_none())
         {
             return Err(RejectReason::Player(PlayerViolation::InvalidAchievements));
         }
@@ -54,7 +55,7 @@ impl RoomSession {
             })
             .map(String::as_str)
             .collect::<HashSet<_>>();
-        let fresh_counts = achievement_counts(fresh).by_tier();
+        let fresh_counts = ACHIEVEMENT_REGISTRY.counts(fresh).by_tier();
         if fresh_counts
             .iter()
             .zip(new.into_iter().zip(old))
