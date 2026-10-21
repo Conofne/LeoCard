@@ -14,6 +14,12 @@ cargo run -p leocard-client
 
 开发时客户端会从工作区根目录的 `assets` 加载素材。内嵌文件列表由 `crates/client/runtime-assets.txt` 管理。
 
+## SakuraFrp 内网穿透
+
+桌面端首页顶栏提供「内网穿透」。在 SakuraFrp 控制台复制访问密钥，点击「从剪贴板登录」，即可查看账号、节点和隧道信息。访问密钥仅保存在本次运行的内存中。可以创建、启动、停止和删除 TCP、UDP、HTTP、HTTPS 隧道；游戏服务器按实际使用的协议和本地端口配置，适用于 Minecraft 以外的游戏。若游戏同时使用 TCP 和 UDP，需分别创建隧道。
+
+公开发布的游戏服务器只能使用 SakuraFrp 标记为允许公开游戏的节点，或名称包含「多线」的节点。创建时请开启「公开游戏服务器」选项；私人联机可以关闭。首次启动隧道时，LeoCard 从 SakuraFrp 官方地址下载 frpc 并校验文件。退出账号或关闭 LeoCard 会停止本机 frpc。数据默认保存在系统数据目录的 `leocard/sakura-frp`，也可用 `LEOCARD_SAKURA_DIR` 指定位置。Android 端暂不提供该入口。
+
 自 0.7.0 版本起，本游戏支持 ARM64 的 Android 12 及以上客户端。
 
 ## 许可证
