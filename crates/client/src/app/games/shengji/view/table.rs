@@ -216,7 +216,13 @@ pub(crate) fn render_shengji_table(
             },
             None,
         );
-        add_shengji_bidding_panel(commands, hand_area, game, visuals.assets);
+        add_shengji_bidding_panel(
+            commands,
+            hand_area,
+            game,
+            visuals.assets,
+            visuals.game_assets,
+        );
         add_shengji_actions(commands, hand_area, game, ui, visuals.assets);
         add_shengji_hand(commands, hand_area, game, ui, visuals.assets);
         add_shengji_self_panel(

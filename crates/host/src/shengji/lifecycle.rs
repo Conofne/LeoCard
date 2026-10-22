@@ -172,20 +172,8 @@ impl ShengjiSession {
                 .expect("validated double deck deals completely");
             changed = true;
             match outcome {
-                ActionOutcome::CardDealt { player, card } => {
-                    if let Some(cards) = self.bot_open_cards(player, card)
-                        && self
-                            .game
-                            .as_mut()
-                            .expect("game remains active")
-                            .declare(player, &cards)
-                            .is_ok()
-                    {
-                        self.record_current_declaration();
-                        events.push(ShengjiEvent::DeclarationChanged {
-                            declaration: self.declaration_view().unwrap(),
-                        });
-                    }
+                ActionOutcome::CardDealt { .. } => {
+                    events.extend(self.open_bot_declarations());
                     let dealt = self
                         .game
                         .as_ref()
@@ -221,6 +209,7 @@ impl ShengjiSession {
     }
 
     fn advance_bidding(&mut self, elapsed: Duration) -> Vec<Delivery> {
+        let events = self.open_bot_declarations();
         self.confirm_automatic_bid_passes();
         if self
             .flow
@@ -228,15 +217,21 @@ impl ShengjiSession {
             .iter()
             .all(|confirmed| *confirmed)
         {
-            return self.finish_bidding(None);
+            let mut deliveries = self.broadcast_events(events);
+            deliveries.extend(self.finish_bidding(None));
+            return deliveries;
         }
         let remaining = self.flow.bidding_remaining.get_or_insert(BIDDING_GRACE);
         if elapsed < *remaining {
             *remaining -= elapsed;
             self.room.bump_revision();
-            return self.broadcast_game(None);
+            let mut deliveries = self.broadcast_events(events);
+            deliveries.extend(self.broadcast_game(None));
+            return deliveries;
         }
-        self.finish_bidding(None)
+        let mut deliveries = self.broadcast_events(events);
+        deliveries.extend(self.finish_bidding(None));
+        deliveries
     }
 
     pub(super) fn finish_bidding(
@@ -277,7 +272,7 @@ impl ShengjiSession {
                         .bidding()
                         .level(),
                 }];
-                events.extend(self.open_power_outage_bot_declaration());
+                events.extend(self.open_bot_declarations());
                 let mut deliveries = self.broadcast_events(events);
                 deliveries.extend(self.broadcast_game(acknowledgement));
                 deliveries

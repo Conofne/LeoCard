@@ -1,7 +1,7 @@
 use super::super::UnoUiAction;
 use crate::app::presentation::UiComposer;
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{LobbyModeDropdown, LobbyModeOption, UiAction};
+use crate::app::shell::{CozyDropdown, CozyDropdownOption, UiAction};
 use bevy::prelude::*;
 use leocard_uno::{Mode, UnoRuleSet};
 
@@ -19,7 +19,7 @@ pub(crate) fn render_uno_mode_dropdown(
         (Mode::NoMercy, "No Mercy"),
         (Mode::Flip, "UNO FLIP"),
     ];
-    LobbyModeDropdown {
+    CozyDropdown {
         label: modes
             .iter()
             .find(|(mode, _)| *mode == rules.mode)
@@ -29,7 +29,7 @@ pub(crate) fn render_uno_mode_dropdown(
         close_action: UiAction::Uno(UnoUiAction::CloseModeMenu),
         options: modes
             .into_iter()
-            .map(|(mode, label)| LobbyModeOption {
+            .map(|(mode, label)| CozyDropdownOption {
                 label,
                 selected: mode == rules.mode,
                 action: UiAction::Uno(UnoUiAction::UpdateRules(UnoRuleSet { mode, ..rules })),

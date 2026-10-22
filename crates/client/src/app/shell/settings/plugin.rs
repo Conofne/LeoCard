@@ -2,11 +2,10 @@ use super::actions::dispatch_settings_actions;
 use super::{
     SettingsMotion, advance_settings_modal, animate_settings_sliders,
     handle_table_appearance_sliders, poll_table_felt_picker, sync_table_appearance,
-    update_settings_tab_hover, update_settings_toggle_hover,
+    update_settings_tab_hover,
 };
 use crate::app::runtime::ClientUpdateSet;
-use crate::app::shell::UiActionSet;
-use crate::app::shell::{ModalAnimationSet, animate_cozy_modals};
+use crate::app::shell::{ModalAnimationSet, UiActionSet, animate_cozy_modals};
 use bevy::prelude::*;
 
 pub(crate) struct SettingsPlugin;
@@ -32,7 +31,7 @@ impl Plugin for SettingsPlugin {
             )
             .add_systems(
                 Update,
-                (update_settings_tab_hover, update_settings_toggle_hover)
+                update_settings_tab_hover
                     .after(animate_cozy_modals)
                     .in_set(ClientUpdateSet::Animate),
             );

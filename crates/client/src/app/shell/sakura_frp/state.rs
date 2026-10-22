@@ -1,21 +1,35 @@
 use bevy::prelude::*;
 use leocard_sakura_frp::{
-    CreatedTunnel, Dashboard, Node, RunningTunnel, SakuraClient, Tunnel, TunnelType, UserInfo,
+    Dashboard, FrpcProgress, Node, RunningTunnel, SakuraClient, SavedLogin, Tunnel, TunnelType,
+    UserInfo,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 pub(super) enum TaskOutcome {
-    LoggedIn(SakuraClient, Dashboard),
+    LoggedIn(SakuraClient, Dashboard, SavedLogin),
     Refreshed(Dashboard),
-    Created(CreatedTunnel, Option<Dashboard>),
+    Created(Option<Dashboard>),
     Deleted(u64, bool, Option<Dashboard>),
     Started(RunningTunnel),
 }
 
 pub(super) enum TaskMessage {
-    Finished(Result<TaskOutcome, String>),
+    Finished(Box<Result<TaskOutcome, String>>),
+    StartupProgress(FrpcProgress),
+    AccountRefreshed {
+        token: String,
+        result: Result<SavedLogin, String>,
+    },
+}
+
+pub(super) struct TunnelStartup {
+    pub id: u64,
+    pub name: String,
+    pub stage: FrpcProgress,
+    pub open: bool,
+    pub animation: f32,
 }
 
 #[derive(Resource)]
@@ -28,19 +42,24 @@ pub(crate) struct SakuraState {
     pub running: HashMap<u64, RunningTunnel>,
     pub name: String,
     pub kind: TunnelType,
+    pub kind_menu_open: bool,
     pub node: Option<u64>,
     pub local_ip: String,
     pub local_port: String,
     pub remote: String,
     pub public_game: bool,
-    pub pending_delete: Option<u64>,
-    pub status: String,
-    pub warning: Option<String>,
+    pub token: String,
+    pub remember_token: bool,
+    pub saved_login: Option<SavedLogin>,
+    pub avatar: Option<Handle<Image>>,
+    pub login_loaded: bool,
+    pub preview_running: bool,
     pub busy: bool,
+    pub(super) startup: Option<TunnelStartup>,
     pub next_refresh: Instant,
     pub tunnel_scroll_y: f32,
-    pub form_scroll_y: f32,
     pub node_scroll_y: f32,
+    pub copied_address: Option<(u64, Instant)>,
     pub(super) messages: Arc<Mutex<Vec<TaskMessage>>>,
 }
 
@@ -55,19 +74,24 @@ impl Default for SakuraState {
             running: HashMap::new(),
             name: String::new(),
             kind: TunnelType::Tcp,
+            kind_menu_open: false,
             node: None,
             local_ip: "127.0.0.1".to_owned(),
             local_port: String::new(),
             remote: String::new(),
             public_game: false,
-            pending_delete: None,
-            status: "复制 SakuraFrp 访问密钥后登录".to_owned(),
-            warning: None,
+            token: String::new(),
+            remember_token: false,
+            saved_login: None,
+            avatar: None,
+            login_loaded: false,
+            preview_running: false,
             busy: false,
+            startup: None,
             next_refresh: Instant::now() + Duration::from_secs(30),
             tunnel_scroll_y: 0.0,
-            form_scroll_y: 0.0,
             node_scroll_y: 0.0,
+            copied_address: None,
             messages: Arc::new(Mutex::new(Vec::new())),
         }
     }
@@ -87,7 +111,9 @@ impl SakuraState {
     }
 
     pub fn node_compatible(&self, node: &Node) -> bool {
-        node.can_create()
+        self.user
+            .as_ref()
+            .is_some_and(|user| node.can_create_for(user))
             && (!self.public_game || node.allows_public_game())
             && (self.kind != TunnelType::Udp || node.supports_udp())
     }

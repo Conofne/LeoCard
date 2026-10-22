@@ -9,6 +9,8 @@ pub(crate) enum CozyModalKind {
     MinecraftGraphGuide,
     UnoExpansionSettings,
     Confirmation,
+    #[cfg(not(target_os = "android"))]
+    SakuraStartup,
     UpdateDialog,
 }
 

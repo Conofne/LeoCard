@@ -98,10 +98,49 @@ pub(crate) fn add_cozy_close_button(
     action: UiAction,
     assets: &UiAssets,
 ) -> Entity {
+    add_cozy_control_button(
+        commands,
+        parent,
+        action,
+        assets,
+        [
+            assets.home.close_button.clone(),
+            assets.home.close_button_highlighted.clone(),
+        ],
+    )
+}
+
+#[track_caller]
+pub(crate) fn add_cozy_refresh_button(
+    commands: &mut UiComposer,
+    parent: Entity,
+    action: UiAction,
+    assets: &UiAssets,
+) -> Entity {
+    add_cozy_control_button(
+        commands,
+        parent,
+        action,
+        assets,
+        [
+            assets.home.refresh_button.clone(),
+            assets.home.refresh_button_highlighted.clone(),
+        ],
+    )
+}
+
+#[track_caller]
+fn add_cozy_control_button(
+    commands: &mut UiComposer,
+    parent: Entity,
+    action: UiAction,
+    assets: &UiAssets,
+    [normal, hovered]: [Handle<Image>; 2],
+) -> Entity {
     TextureButton {
         node: button_node(px(40), 40.0),
-        normal: ImageNode::new(assets.home.close_button.clone()),
-        hovered: ImageNode::new(assets.home.close_button_highlighted.clone()),
+        normal: ImageNode::new(normal),
+        hovered: ImageNode::new(hovered),
         action: Some(action),
         label: None,
         font_size: 14.0,

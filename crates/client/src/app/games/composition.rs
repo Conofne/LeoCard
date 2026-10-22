@@ -136,6 +136,7 @@ impl GameScreenResources<'_> {
                 });
             }
             ClientPhaseRef::Playing(GameSnapshot::Mahjong(game)) => {
+                self.mahjong_ui.reconcile(game);
                 self.clear_except(GameKind::Mahjong);
                 retain_or_clear(shell, |target| {
                     game.players.iter().any(|player| player.id == target)

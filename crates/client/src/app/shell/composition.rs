@@ -9,7 +9,7 @@ use super::{
     render_confirmation, render_update_dialog,
 };
 #[cfg(not(target_os = "android"))]
-use super::{SakuraPage, SakuraState};
+use super::{SakuraPage, SakuraState, render_startup_dialog};
 use crate::app::games::GameScreenResources;
 use crate::app::presentation::{GameSummaryAnimation, UiComposer, UiRoot};
 use crate::app::runtime::{
@@ -254,6 +254,8 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_overlays(&mut self, root: Entity) {
+        #[cfg(not(target_os = "android"))]
+        render_startup_dialog(self.commands, root, &self.visuals.sakura, &self.visuals.ui);
         if self.ui.lan.open {
             render_lan_rooms(
                 self.commands,

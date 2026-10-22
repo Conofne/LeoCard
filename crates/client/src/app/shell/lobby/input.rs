@@ -2,7 +2,6 @@
 
 use crate::app::presentation::{
     ACCENT, LobbyEmptySeatLabel, LobbyEmptySeatRing, LobbySeatHover, LobbySeatVisual, MUTED,
-    RuleHelp,
 };
 use crate::app::runtime::{ClientResource, UiAssets};
 use bevy::picking::hover::PickingInteraction;
@@ -113,22 +112,4 @@ pub(crate) fn handle_lobby_bot_seat_right_click(
     client
         .0
         .send(ClientCommand::ConfigureBotSeat { seat, occupied });
-}
-
-pub(crate) fn update_rule_help_tooltips(
-    helps: Query<(&PickingInteraction, &RuleHelp), Changed<PickingInteraction>>,
-    mut tooltips: Query<&mut Visibility>,
-) {
-    for (interaction, help) in &helps {
-        if let Ok(mut visibility) = tooltips.get_mut(help.tooltip) {
-            *visibility = if matches!(
-                interaction,
-                PickingInteraction::Hovered | PickingInteraction::Pressed
-            ) {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            };
-        }
-    }
 }

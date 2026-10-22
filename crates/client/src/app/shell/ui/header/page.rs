@@ -132,9 +132,9 @@ impl<'a> Header<'a> {
                 right,
                 UiAction::Sakura(SakuraUiAction::Show),
                 self.assets,
-                self.assets.home.settings_icon.clone(),
+                self.assets.home.network_icon.clone(),
                 CozyButtonVariant::Cool,
-                "内网穿透",
+                "联机",
             );
             ShopEntry {
                 assets: self.assets,

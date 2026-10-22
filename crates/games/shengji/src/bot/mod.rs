@@ -7,6 +7,7 @@ mod greedy;
 mod observation;
 mod search;
 
+pub use bidding::ShengjiBiddingObservation;
 pub use decision::{ShengjiBot, ShengjiBotAction};
 pub use greedy::{GreedyBotError, ShengjiGreedyBot, ShengjiGreedyBotRequest};
 pub use observation::ShengjiBotObservation;

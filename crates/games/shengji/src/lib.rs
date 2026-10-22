@@ -15,8 +15,8 @@ mod rules;
 pub use auto_play::{ShengjiAutoPlay, ShengjiAutoPlayError, ShengjiAutoPlayRequest};
 
 pub use bot::{
-    GreedyBotError, ShengjiBot, ShengjiBotAction, ShengjiBotObservation, ShengjiGreedyBot,
-    ShengjiGreedyBotRequest,
+    GreedyBotError, ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction, ShengjiBotObservation,
+    ShengjiGreedyBot, ShengjiGreedyBotRequest,
 };
 pub use card::{ShengjiCard, ShengjiRank, ShengjiSuit, build_deck, build_deck_for};
 pub use game::{

@@ -1,10 +1,12 @@
-use super::{ShengjiBotAction, candidates::plays};
+use super::ShengjiBotAction;
+use super::candidates::plays;
 use crate::play::category;
 use crate::{
     Category, FiveTrumpCrossingStage, GameState, Phase, ShengjiCard, ShengjiPlayerId,
     ShengjiRuleSet, ShengjiTeamId, ShengjiTrump, TrickRecord, build_deck_for,
 };
-use std::{array, collections::HashSet};
+use std::array;
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShengjiBotObservation {
@@ -102,7 +104,7 @@ impl ShengjiBotObservation {
             Phase::Burying | Phase::BottomCopyBurying => {
                 ShengjiBotAction::Bury(self.hand[..self.rules.kitty_size()].to_vec())
             }
-            Phase::BottomCopying => ShengjiBotAction::Copy(None),
+            Phase::BottomCopying => ShengjiBotAction::Copy(self.counter_options.first().cloned()),
             Phase::FiveTrumpCrossing
                 if self.crossing == Some(FiveTrumpCrossingStage::Returning) =>
             {

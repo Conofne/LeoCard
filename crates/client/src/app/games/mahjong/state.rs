@@ -4,7 +4,7 @@ use super::{MahjongOwnDiscardAnimation, MahjongRemoteDiscardAnimation};
 use crate::app::presentation::Observed;
 use bevy::prelude::*;
 use leocard_mahjong::{MahjongClaim, MahjongTile};
-use leocard_protocol::{MatchId, PlayerId};
+use leocard_protocol::{MahjongPhaseView, MahjongSnapshot, MatchId, PlayerId};
 
 #[derive(Resource, Default)]
 pub(crate) struct MahjongUiState {
@@ -18,6 +18,7 @@ pub(crate) struct MahjongUiState {
     pub no_claim: bool,
     pub auto_draw_discard: bool,
     pub choice_menu: Option<MahjongChoiceMenu>,
+    pub selected_discard: Option<MahjongTile>,
     pub fan_summary_continued: Option<(MatchId, u8)>,
     pub final_summary_opened_at: Option<(MatchId, u8, f32)>,
     pub last_automatic_action: Option<MahjongAutomaticActionKey>,
@@ -60,6 +61,15 @@ pub(crate) struct MahjongTableObservation {
 }
 
 impl MahjongUiState {
+    pub(crate) fn reconcile(&mut self, game: &MahjongSnapshot) {
+        if !matches!(game.phase, MahjongPhaseView::Playing)
+            || game.current_player != game.you
+            || self.observed_table.state.hand != game.your_hand
+        {
+            self.selected_discard = None;
+        }
+    }
+
     pub(crate) fn begin_hand(&mut self, match_id: MatchId, sequence_index: u8) {
         let hand = (match_id, sequence_index);
         if self.auto_hand == Some(hand) {
@@ -71,6 +81,7 @@ impl MahjongUiState {
         self.no_claim = false;
         self.auto_draw_discard = false;
         self.choice_menu = None;
+        self.selected_discard = None;
         self.fan_summary_continued = None;
         self.final_summary_opened_at = None;
         self.last_automatic_action = None;

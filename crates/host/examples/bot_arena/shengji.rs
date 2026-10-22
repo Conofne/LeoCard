@@ -1,7 +1,8 @@
 use super::metrics::Metrics;
 use leocard_shengji::{
-    GameState, Phase, ShengjiBot, ShengjiBotAction, ShengjiBotObservation, ShengjiGreedyBot,
-    ShengjiGreedyBotRequest, ShengjiPlayerId, ShengjiRuleSet, TeamProgress, build_deck_for,
+    GameState, Phase, ShengjiBiddingObservation, ShengjiBot, ShengjiBotAction,
+    ShengjiBotObservation, ShengjiGreedyBot, ShengjiGreedyBotRequest, ShengjiPlayerId,
+    ShengjiRuleSet, TeamProgress, build_deck_for,
 };
 use std::time::Duration;
 
@@ -27,13 +28,8 @@ pub fn run(seed: usize, budget: Duration, mixed: bool, metrics: &mut Metrics) {
     game.deal_all().unwrap();
     for index in 0..4 {
         let player = ShengjiPlayerId(index);
-        if let Some(cards) = ShengjiBot::declaration(
-            game.bidding(),
-            player,
-            &game.players()[usize::from(index)].hand,
-            rules,
-            true,
-        ) {
+        let observation = ShengjiBiddingObservation::from_game(&game, player).unwrap();
+        if let Some(cards) = ShengjiBot::declaration(&observation) {
             game.declare(player, &cards).unwrap();
         }
     }

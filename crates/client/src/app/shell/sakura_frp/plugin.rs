@@ -1,27 +1,42 @@
-use super::actions::{dispatch_sakura_actions, refresh, sync_sakura_inputs};
-use super::input::{remember_sakura_scroll, scroll_sakura_lists};
+use super::account::cache_account;
+use super::actions::{dispatch_sakura_actions, refresh};
+use super::input::{
+    remember_sakura_scroll, scroll_sakura_lists, submit_sakura_login, sync_sakura_inputs,
+};
 use super::state::{SakuraState, TaskMessage, TaskOutcome};
+use super::view::{advance_startup_modal, sync_account_menu, sync_startup_dialog};
 use crate::app::presentation::TextInputSet;
-use crate::app::runtime::ClientUpdateSet;
-use crate::app::shell::{UiActionSet, UiState};
+use crate::app::runtime::{ClientUpdateSet, PageErrorState};
+use crate::app::shell::{ModalAnimationSet, UiActionSet, UiState};
 use bevy::prelude::*;
-use bevy_clipboard::Clipboard;
+use std::mem;
 use std::time::{Duration, Instant};
 
 pub(crate) struct SakuraFrpPlugin;
 
 impl Plugin for SakuraFrpPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Clipboard>()
-            .init_resource::<SakuraState>()
-            .add_systems(Update, dispatch_sakura_actions.in_set(UiActionSet))
+        app.init_resource::<SakuraState>()
+            .add_systems(
+                Update,
+                (dispatch_sakura_actions, submit_sakura_login)
+                    .chain()
+                    .in_set(UiActionSet),
+            )
             .add_systems(Update, scroll_sakura_lists.in_set(ClientUpdateSet::Input))
+            .add_systems(Update, sync_account_menu.in_set(ClientUpdateSet::Input))
+            .add_systems(
+                Update,
+                advance_startup_modal.in_set(ModalAnimationSet::Progress),
+            )
             .add_systems(
                 Update,
                 (
                     remember_sakura_scroll,
                     poll_sakura_tasks,
+                    sync_startup_dialog,
                     poll_sakura_processes,
+                    expire_copy_feedback,
                     refresh_periodically,
                 )
                     .chain()
@@ -31,34 +46,64 @@ impl Plugin for SakuraFrpPlugin {
     }
 }
 
-fn poll_sakura_tasks(mut state: ResMut<SakuraState>, mut ui: ResMut<UiState>) {
+fn poll_sakura_tasks(
+    mut state: ResMut<SakuraState>,
+    mut ui: ResMut<UiState>,
+    mut error: ResMut<PageErrorState>,
+    mut images: ResMut<Assets<Image>>,
+) {
     let messages = {
         let Ok(mut queue) = state.messages.lock() else {
             return;
         };
-        std::mem::take(&mut *queue)
+        mem::take(&mut *queue)
     };
     if messages.is_empty() {
         return;
     }
+    let mut rebuild = false;
     for message in messages {
         match message {
+            TaskMessage::StartupProgress(progress) => {
+                if let Some(startup) = &mut state.startup {
+                    startup.stage = progress;
+                }
+            }
+            TaskMessage::AccountRefreshed { token, result } => {
+                rebuild = true;
+                state.preview_running = false;
+                if state.remember_token
+                    && state
+                        .saved_login
+                        .as_ref()
+                        .is_some_and(|saved| saved.token == token)
+                {
+                    match result {
+                        Ok(saved) => {
+                            error.error = cache_account(&mut state, saved, &mut images).err()
+                        }
+                        Err(message) if state.open && state.client.is_none() => {
+                            error.error = Some(message)
+                        }
+                        Err(_) => {}
+                    }
+                }
+            }
             TaskMessage::Finished(result) => {
+                rebuild = true;
                 state.busy = false;
-                match result {
-                    Ok(TaskOutcome::LoggedIn(client, dashboard)) => {
-                        let name = dashboard.user.name.clone();
+                match *result {
+                    Ok(TaskOutcome::LoggedIn(client, dashboard, saved)) => {
+                        state.token = saved.token.clone();
+                        error.error = cache_account(&mut state, saved, &mut images).err();
                         state.client = Some(client);
                         state.apply_dashboard(dashboard);
-                        state.status = format!("已登录 SakuraFrp：{name}");
                     }
                     Ok(TaskOutcome::Refreshed(dashboard)) => {
                         state.apply_dashboard(dashboard);
-                        state.status = format!("已更新 {} 条隧道", state.tunnels.len());
                     }
-                    Ok(TaskOutcome::Created(created, dashboard)) => {
-                        state.status = format!("隧道 {} 已创建，ID {}", created.name, created.id);
-                        state.warning = created.important_warning_for_ai;
+                    Ok(TaskOutcome::Created(dashboard)) => {
+                        error.error = None;
                         if let Some(dashboard) = dashboard {
                             state.apply_dashboard(dashboard);
                         }
@@ -72,26 +117,32 @@ fn poll_sakura_tasks(mut state: ResMut<SakuraState>, mut ui: ResMut<UiState>) {
                         if let Some(dashboard) = dashboard {
                             state.apply_dashboard(dashboard);
                         }
-                        state.status = if failed_to_disconnect {
-                            format!("隧道 {id} 已删除，服务端未能立即踢下线")
-                        } else {
-                            format!("隧道 {id} 已删除")
-                        };
+                        if failed_to_disconnect {
+                            error.error = Some(format!("隧道 {id} 已删除，服务端未能立即断开连接"));
+                        }
                     }
                     Ok(TaskOutcome::Started(running)) => {
                         let id = running.id;
                         state.running.insert(id, running);
-                        state.status = format!("隧道 {id} 已在本机启动");
                     }
-                    Err(error) => state.status = error,
+                    Err(message) => {
+                        state.startup = None;
+                        error.error = Some(message);
+                    }
                 }
             }
         }
     }
-    ui.dirty = true;
+    if rebuild {
+        ui.dirty = true;
+    }
 }
 
-fn poll_sakura_processes(mut state: ResMut<SakuraState>, mut ui: ResMut<UiState>) {
+fn poll_sakura_processes(
+    mut state: ResMut<SakuraState>,
+    mut ui: ResMut<UiState>,
+    mut error: ResMut<PageErrorState>,
+) {
     let mut exited = Vec::new();
     state.running.retain(|id, process| {
         if process.running().unwrap_or(false) {
@@ -101,7 +152,17 @@ fn poll_sakura_processes(mut state: ResMut<SakuraState>, mut ui: ResMut<UiState>
         false
     });
     if let Some((id, log)) = exited.last() {
-        state.status = format!("隧道 {id} 的 frpc 已退出，请查看 {}", log.display());
+        if state
+            .startup
+            .as_ref()
+            .is_some_and(|startup| exited.iter().any(|(id, _)| *id == startup.id))
+        {
+            state.startup = None;
+        }
+        error.error = Some(format!(
+            "隧道 {id} 的 frpc 已退出，请查看 {}",
+            log.display()
+        ));
         ui.dirty = true;
     }
 }
@@ -112,4 +173,14 @@ fn refresh_periodically(mut state: ResMut<SakuraState>) {
     }
     state.next_refresh = Instant::now() + Duration::from_secs(30);
     refresh(&mut state);
+}
+
+fn expire_copy_feedback(mut state: ResMut<SakuraState>, mut ui: ResMut<UiState>) {
+    if state
+        .copied_address
+        .is_some_and(|(_, expires)| Instant::now() >= expires)
+    {
+        state.copied_address = None;
+        ui.dirty = true;
+    }
 }

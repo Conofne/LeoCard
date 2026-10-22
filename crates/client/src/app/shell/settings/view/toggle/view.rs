@@ -1,6 +1,6 @@
 use crate::app::presentation::{TEXT, UiComposer, add_text};
 use crate::app::runtime::UiAssets;
-use crate::app::shell::{SettingsToggle, SettingsUiAction, UiAction};
+use crate::app::shell::{CozyCheckbox, SettingsUiAction, UiAction};
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui_widgets::Button;
@@ -46,6 +46,6 @@ pub(in super::super) fn add_settings_toggle(
     );
     commands
         .entity(button)
-        .insert(SettingsToggle { icon, selected });
+        .insert(CozyCheckbox { icon, selected });
     add_text(commands, button, label, 16.0, TEXT, assets);
 }

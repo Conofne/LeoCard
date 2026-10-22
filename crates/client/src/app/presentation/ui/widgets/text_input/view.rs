@@ -21,6 +21,7 @@ pub(crate) struct TextInput<'a> {
     pub font_size: f32,
     pub tab_index: i32,
     pub skin: Option<TextInputSkin>,
+    pub password: bool,
 }
 
 impl<'a> TextInput<'a> {
@@ -34,6 +35,7 @@ impl<'a> TextInput<'a> {
             font_size: 15.0,
             tab_index: 0,
             skin: None,
+            password: false,
         }
     }
 
@@ -72,7 +74,7 @@ impl<'a> TextInput<'a> {
             NativeTextInput,
             EditableTextFilter::new(self.filter),
             TextFont::from_font_size(self.font_size).with_font(assets.font.clone()),
-            TextColor(TEXT),
+            TextColor(if self.password { Color::NONE } else { TEXT }),
             TextCursorStyle {
                 color: TEXT,
                 selection_color: Color::srgb(0.20, 0.42, 0.72),
@@ -88,6 +90,27 @@ impl<'a> TextInput<'a> {
                 ..default()
             },
         ));
+        if self.password {
+            commands.child(
+                slot,
+                (
+                    ZIndex(1),
+                    super::password::PasswordMask {
+                        editor,
+                        font_size: self.font_size,
+                    },
+                    Pickable::IGNORE,
+                    Node {
+                        position_type: PositionType::Absolute,
+                        left: padding.left,
+                        right: padding.right,
+                        height: px(self.font_size * 1.5),
+                        overflow: Overflow::clip(),
+                        ..default()
+                    },
+                ),
+            );
+        }
         #[cfg(target_os = "android")]
         commands
             .entity(editor)

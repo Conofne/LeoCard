@@ -151,9 +151,29 @@ impl UiActionHandler<MahjongActionContext<'_>> for MahjongUiAction {
                 }
                 return;
             }
+            Self::Discard(tile) => {
+                let Some(game) = context
+                    .client
+                    .as_deref()
+                    .and_then(|client| client.0.model().mahjong_game())
+                else {
+                    return;
+                };
+                if !matches!(game.phase, MahjongPhaseView::Playing)
+                    || game.current_player != game.you
+                    || !game.your_hand.contains(tile)
+                {
+                    return;
+                }
+                if cfg!(target_os = "android") && context.ui.selected_discard != Some(*tile) {
+                    context.ui.selected_discard = Some(*tile);
+                    return;
+                }
+            }
             _ => {}
         }
         context.ui.choice_menu = None;
+        context.ui.selected_discard = None;
         let command = match self {
             MahjongUiAction::UpdateRules(rules) => MahjongCommand::UpdateRules { rules: *rules },
             MahjongUiAction::Discard(tile) => MahjongCommand::Discard { tile: *tile },

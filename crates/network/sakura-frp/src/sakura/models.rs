@@ -5,6 +5,7 @@ use std::net::IpAddr;
 pub struct UserInfo {
     pub id: u64,
     pub name: String,
+    pub avatar: String,
     pub group: Option<UserGroup>,
     pub traffic: Option<[u64; 2]>,
     pub tunnels: Option<u32>,
@@ -38,6 +39,10 @@ pub struct Node {
 impl Node {
     pub fn can_create(&self) -> bool {
         self.flag & (1 << 2) != 0 && self.flag & (1 << 9) == 0
+    }
+
+    pub fn can_create_for(&self, user: &UserInfo) -> bool {
+        self.can_create() && self.vip <= user.group.as_ref().map_or(0, |group| group.level)
     }
 
     pub fn supports_udp(&self) -> bool {
@@ -156,7 +161,6 @@ pub struct CreatedTunnel {
     pub id: u64,
     pub name: String,
     pub remote: Option<String>,
-    pub important_warning_for_ai: Option<String>,
 }
 
 #[cfg(test)]

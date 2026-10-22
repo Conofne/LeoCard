@@ -84,6 +84,7 @@ pub(super) const fn mahjong_claim_landing_time() -> f32 {
 #[derive(Component)]
 #[require(CustomButtonMotion)]
 pub(crate) struct MahjongHandTile {
+    pub tile: MahjongTile,
     pub lift: f32,
     pub base_rotation: f32,
     pub index: i32,

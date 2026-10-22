@@ -7,6 +7,23 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FrpcProgress {
+    ResolvingDownload,
+    CheckingCache,
+    Downloading { downloaded: u64, total: Option<u64> },
+    Verifying,
+    FetchingConfig,
+    Starting,
+    Started,
+}
+
+#[derive(Deserialize)]
+struct ClientDownloads {
+    frpc: ClientRelease,
+}
 
 #[derive(Deserialize)]
 struct ClientRelease {
@@ -17,7 +34,7 @@ struct ClientRelease {
 #[derive(Deserialize)]
 struct ClientArtifact {
     url: String,
-    hash: String,
+    hash: Option<String>,
 }
 
 pub struct RunningTunnel {
@@ -48,11 +65,11 @@ impl SakuraClient {
     pub fn start_tunnel(
         &self,
         id: u64,
-        mut progress: impl FnMut(String),
+        mut progress: impl FnMut(FrpcProgress),
     ) -> Result<RunningTunnel, String> {
-        progress("获取 SakuraFrp 客户端信息".to_owned());
-        let releases: HashMap<String, ClientRelease> = self.public_json("/system/clients")?;
-        let release = releases.get("frpc").ok_or("官方目录没有 frpc 下载信息")?;
+        progress(FrpcProgress::ResolvingDownload);
+        let downloads: ClientDownloads = self.public_json("/system/clients?download=true")?;
+        let release = downloads.frpc;
         let artifact = release
             .archs
             .get(platform_arch()?)
@@ -76,7 +93,11 @@ impl SakuraClient {
         {
             return Err("frpc 版本名称无效".to_owned());
         }
-        let expected = artifact.hash.to_ascii_lowercase();
+        let expected = artifact
+            .hash
+            .as_deref()
+            .ok_or("官方 frpc 下载信息缺少校验值")?
+            .to_ascii_lowercase();
         if expected.len() != 32 || !expected.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return Err("官方 frpc 校验值无效".to_owned());
         }
@@ -89,9 +110,8 @@ impl SakuraClient {
             } else {
                 "frpc"
             });
-        progress(format!("准备 frpc {version}"));
-        self.download_binary(url.as_str(), &binary, &expected)?;
-        progress(format!("获取隧道 {id} 的运行配置"));
+        self.download_binary(url.as_str(), &binary, &expected, &mut progress)?;
+        progress(FrpcProgress::FetchingConfig);
         let config = self.config(id, &version)?;
         let config_path = root.join("config").join(format!("tunnel-{id}.ini"));
         write_private(&config_path, config.as_bytes())?;
@@ -117,6 +137,7 @@ impl SakuraClient {
             use std::os::windows::process::CommandExt;
             command.creation_flags(0x0800_0000);
         }
+        progress(FrpcProgress::Starting);
         let child = match command.spawn() {
             Ok(child) => child,
             Err(error) => {
@@ -124,6 +145,7 @@ impl SakuraClient {
                 return Err(format!("启动 frpc 失败：{error}"));
             }
         };
+        progress(FrpcProgress::Started);
         Ok(RunningTunnel {
             id,
             child,
@@ -132,7 +154,14 @@ impl SakuraClient {
         })
     }
 
-    fn download_binary(&self, url: &str, target: &Path, expected: &str) -> Result<(), String> {
+    fn download_binary(
+        &self,
+        url: &str,
+        target: &Path,
+        expected: &str,
+        progress: &mut impl FnMut(FrpcProgress),
+    ) -> Result<(), String> {
+        progress(FrpcProgress::CheckingCache);
         if target.is_file() && file_hash(target)? == expected {
             return Ok(());
         }
@@ -140,12 +169,20 @@ impl SakuraClient {
             .map_err(|error| error.to_string())?;
         let temporary = target.with_extension("part");
         let result = (|| {
+            progress(FrpcProgress::Downloading {
+                downloaded: 0,
+                total: None,
+            });
             let mut response = self
                 .http
                 .get(url)
                 .send()
                 .and_then(reqwest::blocking::Response::error_for_status)
                 .map_err(|error| format!("下载 frpc 失败：{error}"))?;
+            let total = response.content_length().filter(|total| *total > 0);
+            let mut downloaded = 0;
+            let mut last_update = Instant::now();
+            progress(FrpcProgress::Downloading { downloaded, total });
             let mut output = File::create(&temporary).map_err(|error| error.to_string())?;
             let mut hasher = Md5::new();
             let mut buffer = [0_u8; 64 * 1024];
@@ -160,7 +197,14 @@ impl SakuraClient {
                     .write_all(&buffer[..count])
                     .map_err(|error| error.to_string())?;
                 hasher.update(&buffer[..count]);
+                downloaded += count as u64;
+                if last_update.elapsed() >= Duration::from_millis(100) {
+                    progress(FrpcProgress::Downloading { downloaded, total });
+                    last_update = Instant::now();
+                }
             }
+            progress(FrpcProgress::Downloading { downloaded, total });
+            progress(FrpcProgress::Verifying);
             output.flush().map_err(|error| error.to_string())?;
             if format!("{:x}", hasher.finalize()) != expected {
                 return Err("frpc 下载文件校验失败".to_owned());
@@ -223,5 +267,41 @@ fn platform_arch() -> Result<&'static str, String> {
         ("macos", "x86_64") => Ok("darwin_amd64"),
         ("macos", "aarch64") => Ok("darwin_arm64"),
         _ => Err("当前系统架构不支持内置 frpc".to_owned()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ClientDownloads;
+
+    #[test]
+    fn download_catalog_accepts_docker_links_without_checksums() {
+        // The catalog mixes native binaries with Docker links, and other launcher categories
+        // have their own artifact formats. Only a selected native binary requires a checksum.
+        let downloads: ClientDownloads = serde_json::from_str(
+            r#"{
+                "unix": {
+                    "archs": {
+                        "docker_hub": {"url": "https://hub.docker.com/r/natfrp/launcher"}
+                    }
+                },
+                "frpc": {
+                    "ver": "0.51.0-sakura-14",
+                    "archs": {
+                        "docker_hub": {"url": "https://hub.docker.com/r/natfrp/frpc"},
+                        "linux_amd64": {
+                            "url": "https://nya.globalslb.net/natfrp/client/frpc/0.51.0-sakura-15/frpc_linux_amd64",
+                            "hash": "9d9bde7f43fe7018ff9490a874ffc604"
+                        }
+                    }
+                }
+            }"#,
+        )
+        .unwrap();
+        assert!(downloads.frpc.archs["docker_hub"].hash.is_none());
+        assert_eq!(
+            downloads.frpc.archs["linux_amd64"].hash.as_deref(),
+            Some("9d9bde7f43fe7018ff9490a874ffc604")
+        );
     }
 }

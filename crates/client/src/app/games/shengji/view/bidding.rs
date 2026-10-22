@@ -1,15 +1,12 @@
-use super::super::ShengjiUiAction;
 use super::super::skin::{add_shengji_button, add_shengji_disabled_button};
+use super::super::{ShengjiAssets, ShengjiUiAction};
+use super::bid_strip::add_shengji_bid_strip;
 use super::shengji_current_level;
-use crate::app::presentation::{
-    ACCENT, DANGER, GameButtonTone, TEXT, UiComposer, add_text, spawn_node,
-};
+use crate::app::presentation::{ACCENT, GameButtonTone, UiComposer, add_text, spawn_node};
 use crate::app::runtime::{ClientResource, UiAssets};
 use crate::app::shell::UiAction;
 use bevy::prelude::*;
-use bevy::ui_widgets::Button;
-use leocard_protocol::ShengjiDeclarationView;
-use leocard_protocol::{ShengjiPhaseView, ShengjiSnapshot};
+use leocard_protocol::{ShengjiDeclarationView, ShengjiPhaseView, ShengjiSnapshot};
 use leocard_shengji::bid_joker_for_suit;
 use leocard_shengji::{ShengjiBidTrump, ShengjiCard, ShengjiRank, ShengjiSuit};
 
@@ -50,6 +47,7 @@ pub(super) fn add_shengji_bidding_panel(
     hand_area: Entity,
     game: &ShengjiSnapshot,
     assets: &UiAssets,
+    game_assets: &ShengjiAssets,
 ) {
     let bottom_copy = match game.phase {
         ShengjiPhaseView::Dealing { .. } | ShengjiPhaseView::BiddingGrace { .. } => false,
@@ -82,7 +80,7 @@ pub(super) fn add_shengji_bidding_panel(
         None,
     );
     commands.entity(panel).insert(GlobalZIndex(80));
-    add_shengji_bid_strip(commands, panel, game, bottom_copy, assets);
+    add_shengji_bid_strip(commands, panel, game, bottom_copy, assets, game_assets);
     if bottom_copy {
         add_shengji_button(
             commands,
@@ -141,97 +139,6 @@ fn add_shengji_bid_pass_button(
             116.0,
             42.0,
             GameButtonTone::Pass,
-        );
-    }
-}
-
-pub(super) fn add_shengji_bid_strip(
-    commands: &mut UiComposer,
-    parent: Entity,
-    game: &ShengjiSnapshot,
-    bottom_copy: bool,
-    assets: &UiAssets,
-) {
-    let mut strip_image = ImageNode::new(assets.home.settings_page.clone()).with_mode(
-        NodeImageMode::Sliced(TextureSlicer {
-            border: BorderRect::all(20.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 1.0,
-        }),
-    );
-    strip_image.visual_box = VisualBox::BorderBox;
-    strip_image.color = Color::srgb(0.64, 0.63, 0.69);
-    let strip = spawn_node(
-        commands,
-        parent,
-        Node {
-            width: px(320),
-            height: px(54),
-            flex_direction: FlexDirection::Row,
-            ..default()
-        },
-        None,
-    );
-    commands.entity(strip).insert(strip_image);
-    for (index, (label, target, color)) in [
-        ("♦", Some(ShengjiSuit::Diamond), DANGER),
-        ("♣", Some(ShengjiSuit::Club), TEXT),
-        ("♥", Some(ShengjiSuit::Heart), DANGER),
-        ("♠", Some(ShengjiSuit::Spade), TEXT),
-        ("NG", None, ACCENT),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let cards = shengji_declaration_candidate(game, target);
-        let enabled = cards.is_some();
-        let button = commands.child(
-            strip,
-            (Node {
-                width: px(64),
-                height: px(54),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                ..default()
-            },),
-        );
-        if let Some(cards) = cards {
-            commands.entity(button).insert((
-                Button,
-                if bottom_copy {
-                    UiAction::Shengji(ShengjiUiAction::BottomCopy(cards))
-                } else {
-                    UiAction::Shengji(ShengjiUiAction::Declare(cards))
-                },
-            ));
-        }
-        if index < 4 {
-            spawn_node(
-                commands,
-                button,
-                Node {
-                    position_type: PositionType::Absolute,
-                    right: px(0),
-                    top: px(8),
-                    bottom: px(8),
-                    width: px(1),
-                    ..default()
-                },
-                Some(Color::srgba(0.72, 0.72, 0.76, 0.24)),
-            );
-        }
-        add_text(
-            commands,
-            button,
-            label,
-            if label == "NG" { 19.0 } else { 27.0 },
-            if enabled {
-                color
-            } else {
-                Color::srgb(0.37, 0.38, 0.42)
-            },
-            assets,
         );
     }
 }

@@ -13,6 +13,13 @@ impl Plugin for TextInputPlugin {
     fn build(&self, app: &mut App) {
         #[cfg(target_os = "android")]
         app.add_systems(PreUpdate, super::android::edit_native_text);
+        app.add_systems(
+            PostUpdate,
+            super::password::sync_password_masks
+                .after(TextInputSet::Publish)
+                .after(UiSystems::Layout)
+                .before(UiSystems::PostLayout),
+        );
         app.add_plugins(TabNavigationPlugin)
             .add_observer(focus_input_slot)
             .add_observer(collect_submissions)

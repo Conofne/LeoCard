@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="54" viewBox="0 0 360 54">
+<defs>
+  <linearGradient id="rim" x2="0" y2="1">
+    <stop stop-color="#a0a3ae"/><stop offset=".3" stop-color="#777b87"/><stop offset="1" stop-color="#3c404b"/>
+  </linearGradient>
+  <linearGradient id="body" x2="0" y2="1">
+    <stop stop-color="#4c4f59"/><stop offset=".5" stop-color="#575a65"/><stop offset="1" stop-color="#464953"/>
+  </linearGradient>
+  <linearGradient id="inset" x2="0" y2="1">
+    <stop stop-color="#292d36"/><stop offset="1" stop-color="#7c808b"/>
+  </linearGradient>
+</defs>
+<rect x="1" y="3" width="358" height="50" rx="13" fill="#191d25" opacity=".35"/>
+<rect x="1" y="1" width="358" height="50" rx="13" fill="url(#rim)"/>
+<rect x="3" y="3" width="354" height="46" rx="11" fill="url(#body)"/>
+<rect x="4.5" y="4.5" width="351" height="43" rx="9.5" fill="none" stroke="url(#inset)" stroke-width="1.2"/>
+<path d="M15 2H345" fill="none" stroke="#e0e3eb" stroke-width=".7" opacity=".42"/>
+<path d="M15 48H345" fill="none" stroke="#bbc0ce" stroke-width=".65" opacity=".28"/>
+</svg>

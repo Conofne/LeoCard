@@ -3,7 +3,7 @@ use super::rules::render_rule_rows;
 use crate::app::presentation::{UiComposer, spawn_node};
 use crate::app::runtime::{AvatarImages, ClientResource, UiAssets};
 use crate::app::shell::{
-    LobbyModeDropdown, LobbyModeOption, LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction,
+    CozyDropdown, CozyDropdownOption, LobbyPage, LobbyPageStyle, LobbyPlayerSection, UiAction,
     add_lobby_rules_heading,
 };
 use bevy::prelude::*;
@@ -41,13 +41,13 @@ pub(crate) fn render_guess_lobby(
         None,
     );
     add_lobby_rules_heading(commands, heading, "竞猜配置", assets);
-    LobbyModeDropdown {
+    CozyDropdown {
         label: rules.mode.label(),
         toggle_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::ToggleModeMenu),
         close_action: UiAction::MinecraftGuess(MinecraftGuessUiAction::CloseModeMenu),
         options: [GuessMode::TurnBased, GuessMode::Race, GuessMode::Graph]
             .into_iter()
-            .map(|mode| LobbyModeOption {
+            .map(|mode| CozyDropdownOption {
                 label: mode.label(),
                 selected: mode == rules.mode,
                 action: UiAction::MinecraftGuess(MinecraftGuessUiAction::UpdateRules(

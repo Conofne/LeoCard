@@ -6,20 +6,20 @@ use bevy::prelude::*;
 use bevy::ui::VisualBox;
 use bevy::ui_widgets::Button;
 
-pub(crate) struct LobbyModeOption {
+pub(crate) struct CozyDropdownOption {
     pub label: &'static str,
     pub selected: bool,
     pub action: UiAction,
 }
 
-pub(crate) struct LobbyModeDropdown {
+pub(crate) struct CozyDropdown {
     pub label: &'static str,
     pub toggle_action: UiAction,
     pub close_action: UiAction,
-    pub options: Vec<LobbyModeOption>,
+    pub options: Vec<CozyDropdownOption>,
 }
 
-impl LobbyModeDropdown {
+impl CozyDropdown {
     pub(crate) fn render(
         self,
         commands: &mut UiComposer,
@@ -46,7 +46,7 @@ impl LobbyModeDropdown {
                         ..default()
                     },
                     BackgroundColor(Color::NONE),
-                    GlobalZIndex(1850),
+                    GlobalZIndex(900),
                     Pickable::default(),
                 ),
             );
@@ -64,7 +64,10 @@ impl LobbyModeDropdown {
             },
             None,
         );
-        commands.entity(selector).insert(GlobalZIndex(1870));
+        // Expanded menus sit above page controls and below tooltips and account popups.
+        commands
+            .entity(selector)
+            .insert(GlobalZIndex(if open && can_configure { 910 } else { 0 }));
 
         let mut trigger_image = ImageNode::new(assets.home.input.clone()).with_mode(
             NodeImageMode::Sliced(TextureSlicer {
@@ -171,7 +174,7 @@ impl LobbyModeDropdown {
         );
         commands
             .entity(menu)
-            .insert((GlobalZIndex(1890), Pickable::default()));
+            .insert((GlobalZIndex(920), Pickable::default()));
         for option in self.options {
             let selected = option.selected;
             let option_label = option.label;

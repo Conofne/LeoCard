@@ -1,26 +1,37 @@
-use super::state::{SakuraState, TaskMessage, TaskOutcome};
-use crate::app::shell::{DomainUiAction, PressedUiAction, UiAction, UiState};
+use super::state::{SakuraState, TaskMessage, TaskOutcome, TunnelStartup};
+use crate::app::runtime::PageErrorState;
+use crate::app::shell::{
+    ConfirmationDialog, CozyButtonVariant, DomainUiAction, PageMotion, PressedUiAction, UiAction,
+    UiState,
+};
 use bevy::prelude::*;
-use bevy::text::EditableText;
 use bevy_clipboard::Clipboard;
-use leocard_sakura_frp::{CreateTunnel, SakuraClient, TunnelType};
+use leocard_client::open_url;
+use leocard_sakura_frp::{CreateTunnel, FrpcProgress, TunnelType};
 use std::thread;
+use std::time::{Duration, Instant};
 
 #[derive(Clone)]
 pub(crate) enum SakuraUiAction {
     Show,
     Close,
-    LoginFromClipboard,
+    Login,
+    ToggleRemember,
+    Register,
+    RecoverPassword,
     Logout,
     Refresh,
+    ToggleKindMenu,
+    CloseKindMenu,
     SelectKind(TunnelType),
     SelectNode(u64),
     TogglePublicGame,
     Create,
     Start(u64),
+    CloseStartup,
     Stop(u64),
+    CopyAddress(u64),
     AskDelete(u64),
-    CancelDelete,
     ConfirmDelete(u64),
 }
 
@@ -33,11 +44,19 @@ impl DomainUiAction for SakuraUiAction {
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Bevy injects independent account, navigation, clipboard and dialog resources"
+)]
 pub(super) fn dispatch_sakura_actions(
     mut actions: MessageReader<PressedUiAction>,
     mut state: ResMut<SakuraState>,
-    mut clipboard: ResMut<Clipboard>,
+    mut error: ResMut<PageErrorState>,
+    mut images: ResMut<Assets<Image>>,
     mut ui: ResMut<UiState>,
+    mut page_motion: ResMut<PageMotion>,
+    mut confirmation: ResMut<ConfirmationDialog>,
+    mut clipboard: ResMut<Clipboard>,
 ) {
     for pressed in actions.read() {
         let Some(action) = SakuraUiAction::extract(&pressed.0) else {
@@ -46,7 +65,12 @@ pub(super) fn dispatch_sakura_actions(
         ui.dirty = true;
         match action {
             SakuraUiAction::Show => {
+                if !state.open {
+                    page_motion.begin();
+                }
                 state.open = true;
+                state.kind_menu_open = false;
+                error.error = super::account::open_account(&mut state, &mut images).err();
                 ui.shop.open = false;
                 ui.achievements.open = false;
                 ui.settings.open = false;
@@ -55,37 +79,49 @@ pub(super) fn dispatch_sakura_actions(
                     refresh(&mut state);
                 }
             }
-            SakuraUiAction::Close => state.open = false,
-            SakuraUiAction::LoginFromClipboard => {
-                let result = clipboard
-                    .fetch_text()
-                    .poll_result()
-                    .ok_or("剪贴板暂时不可读取".to_owned())
-                    .and_then(|result| result.map_err(|error| format!("读取剪贴板失败：{error}")));
-                match result {
-                    Ok(token) => {
-                        start_task(&mut state, "验证 SakuraFrp 访问密钥", move || {
-                            let client = SakuraClient::new(token)?;
-                            let dashboard = client.dashboard()?;
-                            Ok(TaskOutcome::LoggedIn(client, dashboard))
-                        })
-                    }
-                    Err(error) => state.status = error,
+            SakuraUiAction::Close => {
+                if state.open {
+                    page_motion.begin();
                 }
+                state.open = false;
+                state.kind_menu_open = false;
+            }
+            SakuraUiAction::Login => {
+                error.error = None;
+                super::account::login(&mut state);
+            }
+            SakuraUiAction::ToggleRemember => {
+                error.error = super::account::remember(&mut state).err();
+            }
+            SakuraUiAction::Register | SakuraUiAction::RecoverPassword => {
+                error.error = open_url(if matches!(action, SakuraUiAction::Register) {
+                    "https://openid.13a.com/register"
+                } else {
+                    "https://openid.13a.com/reset_password"
+                })
+                .err();
             }
             SakuraUiAction::Logout => {
                 if !state.busy {
                     state.running.clear();
                     state.client = None;
                     state.user = None;
+                    state.token = state
+                        .saved_login
+                        .as_ref()
+                        .map_or_else(String::new, |saved| saved.token.clone());
                     state.nodes.clear();
                     state.tunnels.clear();
-                    state.status = "已退出 SakuraFrp，隧道已停止".to_owned();
+                    state.kind_menu_open = false;
+                    state.copied_address = None;
                 }
             }
             SakuraUiAction::Refresh => refresh(&mut state),
+            SakuraUiAction::ToggleKindMenu => state.kind_menu_open = !state.kind_menu_open,
+            SakuraUiAction::CloseKindMenu => state.kind_menu_open = false,
             SakuraUiAction::SelectKind(kind) => {
                 state.kind = *kind;
+                state.kind_menu_open = false;
                 state.select_compatible_node();
             }
             SakuraUiAction::SelectNode(id) => {
@@ -102,12 +138,16 @@ pub(super) fn dispatch_sakura_actions(
                 state.select_compatible_node();
             }
             SakuraUiAction::Create => {
-                let Some(node) = state.selected_node().cloned() else {
-                    state.status = "请先选择可用节点".to_owned();
+                let Some(node) = state
+                    .selected_node()
+                    .filter(|node| state.node_compatible(node))
+                    .cloned()
+                else {
+                    error.error = Some("请先选择可用节点".to_owned());
                     continue;
                 };
                 let Ok(port) = state.local_port.trim().parse::<u16>() else {
-                    state.status = "本地端口需为 1 到 65535".to_owned();
+                    error.error = Some("本地端口需为 1 到 65535".to_owned());
                     continue;
                 };
                 let request = CreateTunnel {
@@ -120,48 +160,97 @@ pub(super) fn dispatch_sakura_actions(
                         .then(|| state.remote.trim().to_owned()),
                     public_game: state.public_game,
                 };
-                if let Err(error) = request.validate(&node) {
-                    state.status = error;
+                if let Err(message) = request.validate(&node) {
+                    error.error = Some(message);
                     continue;
                 }
                 let Some(client) = state.client.clone() else {
                     continue;
                 };
-                start_task(&mut state, "创建 SakuraFrp 隧道", move || {
-                    let created = client.create_tunnel(&request, &node)?;
+                start_task(&mut state, move || {
+                    client.create_tunnel(&request, &node)?;
                     let dashboard = client.dashboard().ok();
-                    Ok(TaskOutcome::Created(created, dashboard))
+                    Ok(TaskOutcome::Created(dashboard))
                 });
             }
             SakuraUiAction::Start(id) => {
-                if state.running.contains_key(id) {
+                if state.busy || state.startup.is_some() || state.running.contains_key(id) {
                     continue;
                 }
                 let Some(client) = state.client.clone() else {
                     continue;
                 };
+                let Some(tunnel) = state.tunnels.iter().find(|tunnel| tunnel.id == *id) else {
+                    continue;
+                };
+                state.startup = Some(TunnelStartup {
+                    id: *id,
+                    name: tunnel.name.clone(),
+                    stage: FrpcProgress::ResolvingDownload,
+                    open: true,
+                    animation: 0.0,
+                });
+                state.kind_menu_open = false;
+                error.error = None;
+                let messages = state.messages.clone();
                 let id = *id;
-                start_task(&mut state, "启动内网穿透", move || {
-                    client.start_tunnel(id, |_| {}).map(TaskOutcome::Started)
+                start_task(&mut state, move || {
+                    client
+                        .start_tunnel(id, |progress| {
+                            if let Ok(mut queue) = messages.lock() {
+                                queue.push(TaskMessage::StartupProgress(progress));
+                            }
+                        })
+                        .map(TaskOutcome::Started)
                 });
             }
-            SakuraUiAction::Stop(id) => {
-                if state.running.remove(id).is_some() {
-                    state.status = format!("隧道 {id} 已在本机停止");
+            SakuraUiAction::CloseStartup => {
+                if let Some(startup) = &mut state.startup
+                    && startup.stage == FrpcProgress::Started
+                {
+                    startup.open = false;
                 }
             }
-            SakuraUiAction::AskDelete(id) => state.pending_delete = Some(*id),
-            SakuraUiAction::CancelDelete => state.pending_delete = None,
+            SakuraUiAction::Stop(id) => {
+                state.running.remove(id);
+            }
+            SakuraUiAction::CopyAddress(id) => {
+                let Some(tunnel) = state.tunnels.iter().find(|tunnel| tunnel.id == *id) else {
+                    continue;
+                };
+                match clipboard.set_text(tunnel.address(&state.nodes)) {
+                    Ok(()) => {
+                        state.copied_address = Some((*id, Instant::now() + Duration::from_secs(2)));
+                    }
+                    Err(message) => {
+                        error.error = Some(format!("复制公网地址失败：{message}"));
+                    }
+                }
+            }
+            SakuraUiAction::AskDelete(id) => {
+                if state.busy {
+                    continue;
+                }
+                let Some(tunnel) = state.tunnels.iter().find(|tunnel| tunnel.id == *id) else {
+                    continue;
+                };
+                confirmation.show_with_button(
+                    "删除隧道".to_owned(),
+                    format!("确定删除隧道「{}」吗？此操作无法撤销。", tunnel.name),
+                    UiAction::Sakura(SakuraUiAction::ConfirmDelete(*id)),
+                    "删除",
+                    CozyButtonVariant::Danger,
+                );
+            }
             SakuraUiAction::ConfirmDelete(id) => {
-                if state.pending_delete != Some(*id) {
+                if state.busy || !state.tunnels.iter().any(|tunnel| tunnel.id == *id) {
                     continue;
                 }
                 let Some(client) = state.client.clone() else {
                     continue;
                 };
                 let id = *id;
-                state.pending_delete = None;
-                start_task(&mut state, "删除 SakuraFrp 隧道", move || {
+                start_task(&mut state, move || {
                     let failed_to_disconnect = client.delete_tunnel(id)?;
                     let dashboard = client.dashboard().ok();
                     Ok(TaskOutcome::Deleted(id, failed_to_disconnect, dashboard))
@@ -175,53 +264,24 @@ pub(super) fn refresh(state: &mut SakuraState) {
     let Some(client) = state.client.clone() else {
         return;
     };
-    start_task(state, "刷新隧道状态", move || {
+    start_task(state, move || {
         client.dashboard().map(TaskOutcome::Refreshed)
     });
 }
 
-fn start_task(
+pub(super) fn start_task(
     state: &mut SakuraState,
-    title: &str,
     task: impl FnOnce() -> Result<TaskOutcome, String> + Send + 'static,
 ) {
     if state.busy {
         return;
     }
     state.busy = true;
-    state.status = title.to_owned();
     let messages = state.messages.clone();
     thread::spawn(move || {
         let result = task();
         if let Ok(mut queue) = messages.lock() {
-            queue.push(TaskMessage::Finished(result));
+            queue.push(TaskMessage::Finished(Box::new(result)));
         }
     });
-}
-
-#[derive(Component, Clone, Copy)]
-pub(super) enum SakuraInput {
-    Name,
-    LocalIp,
-    LocalPort,
-    Remote,
-}
-
-pub(super) fn sync_sakura_inputs(
-    inputs: Query<(&SakuraInput, &EditableText)>,
-    mut state: ResMut<SakuraState>,
-    mut ui: ResMut<UiState>,
-) {
-    for (kind, input) in &inputs {
-        let value = match kind {
-            SakuraInput::Name => &mut state.name,
-            SakuraInput::LocalIp => &mut state.local_ip,
-            SakuraInput::LocalPort => &mut state.local_port,
-            SakuraInput::Remote => &mut state.remote,
-        };
-        if input.value() != value.as_str() {
-            *value = input.value().to_string();
-            ui.dirty = true;
-        }
-    }
 }

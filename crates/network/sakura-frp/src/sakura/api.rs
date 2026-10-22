@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::collections::HashMap;
+use std::io::Read;
 use std::time::Duration;
 
 const API: &str = "https://api.natfrp.com/v4";
@@ -40,13 +41,7 @@ impl SakuraClient {
     }
 
     pub fn dashboard(&self) -> Result<Dashboard, String> {
-        let user: UserInfo = self.get("/user/info")?;
-        if let Some(ban) = &user.ban {
-            return Err(format!(
-                "SakuraFrp 账号已冻结：{} {}",
-                ban.title, ban.reason
-            ));
-        }
+        let user = self.user_info()?;
         let nodes: HashMap<String, Node> = self.get("/nodes")?;
         let mut nodes = nodes
             .into_iter()
@@ -63,6 +58,40 @@ impl SakuraClient {
             nodes,
             tunnels,
         })
+    }
+
+    pub fn user_info(&self) -> Result<UserInfo, String> {
+        let user: UserInfo = self.get("/user/info")?;
+        if let Some(ban) = &user.ban {
+            return Err(format!(
+                "SakuraFrp 账号已冻结：{} {}",
+                ban.title, ban.reason
+            ));
+        }
+        Ok(user)
+    }
+
+    pub fn avatar(&self, user: &UserInfo) -> Result<Vec<u8>, String> {
+        let url = reqwest::Url::parse(&user.avatar).map_err(|_| "头像地址无效")?;
+        if url.scheme() != "https" {
+            return Err("头像地址必须使用 HTTPS".to_owned());
+        }
+        // Public image requests never carry the account's bearer credential.
+        let response = self
+            .http
+            .get(url)
+            .send()
+            .and_then(|response| response.error_for_status())
+            .map_err(|_| "下载 SakuraFrp 头像失败")?;
+        let mut bytes = Vec::new();
+        response
+            .take(1_048_577)
+            .read_to_end(&mut bytes)
+            .map_err(|_| "读取 SakuraFrp 头像失败")?;
+        if bytes.len() > 1_048_576 {
+            return Err("SakuraFrp 头像过大".to_owned());
+        }
+        Ok(bytes)
     }
 
     pub fn create_tunnel(
