@@ -21,6 +21,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: "1"
+  LEOCARD_BUILD_PROFILE: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'dev' }}
 
 jobs:
   test:
@@ -62,9 +63,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: Linux-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          key: Linux-cargo-test-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            Linux-cargo-test-
+            Linux-cargo-test-${{ env.LEOCARD_BUILD_PROFILE }}-
 
       - name: Install Clippy for release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -72,14 +73,13 @@ jobs:
 
       - name: Lint workspace
         if: startsWith(github.ref, 'refs/tags/v')
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --all-features --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked -- -D warnings
 
       - name: Test workspace
-        run: cargo test --workspace --all-targets --locked -- --test-threads=1
+        run: cargo test --workspace --all-targets --profile ${{ env.LEOCARD_BUILD_PROFILE }} --locked -- --test-threads=1
 
   build:
     name: Build ${{ matrix.name }}
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -121,29 +121,34 @@ jobs:
           rustc --version
           cargo --version
 
-      - name: Cache Cargo dependencies and release output
+      - name: Cache Cargo dependencies and build output
         uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-release-
+            ${{ runner.os }}-cargo-${{ env.LEOCARD_BUILD_PROFILE }}-
 
-      - name: Build self-contained client
+      - name: Build debug client
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: cargo build -p leocard-client --all-features --locked
+
+      - name: Build self-contained release client
+        if: startsWith(github.ref, 'refs/tags/v')
         run: cargo build -p leocard-client --release --locked
 
       - name: Package Linux binary and checksum
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/v')
         run: |
           install -Dm755 target/release/leocard "dist/${{ matrix.artifact }}"
           cd dist
           sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
 
       - name: Package Windows binary and checksum
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
@@ -152,6 +157,7 @@ jobs:
           "$hash  ${{ matrix.artifact }}" | Set-Content -Encoding ascii "dist/${{ matrix.artifact }}.sha256"
 
       - name: Upload build artifact
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
@@ -161,12 +167,12 @@ jobs:
 
   android:
     name: Build Android ARM64
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
       LEOCARD_ROOT: ${{ github.workspace }}
       CARGO_BUILD_JOBS: "2"
+      LEOCARD_BUILD_PROFILE: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'android-dev' }}
 
     steps:
       - name: Check out source
@@ -187,8 +193,11 @@ jobs:
         run: |
           rustup update stable --no-self-update
           rustup default stable
-          rustup component add clippy
           rustup target add aarch64-linux-android
+
+      - name: Install Clippy for Android release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: rustup component add clippy
 
       - name: Cache Android build dependencies
         uses: actions/cache@v6
@@ -199,11 +208,12 @@ jobs:
             ~/.cargo/bin/cargo-ndk
             target/aarch64-linux-android
             target/release
+            target/android-dev
             target/android/gradle-home/caches
             target/android/gradle-9.8.1
-          key: Android-arm64-${{ hashFiles('**/Cargo.lock', 'android/**/*.gradle', 'android/gradle.properties', 'android/toolchain.sh') }}
+          key: Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-${{ hashFiles('**/Cargo.lock', 'android/**/*.gradle', 'android/gradle.properties', 'android/toolchain.sh') }}
           restore-keys: |
-            Android-arm64-
+            Android-arm64-${{ env.LEOCARD_BUILD_PROFILE }}-
 
       - name: Prepare Android SDK, NDK and Gradle
         run: |
@@ -212,13 +222,32 @@ jobs:
           (set +o pipefail; yes | sdkmanager --licenses > /dev/null)
           android_tools
 
-      - name: Lint and build ARM64 native library
+      - name: Lint ARM64 release native library
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           source android/toolchain.sh
           cargo ndk -t arm64-v8a -P 31 clippy -p leocard-client --lib --release --all-features --locked -- -D warnings
+
+      - name: Build ARM64 debug native library
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          source android/toolchain.sh
+          cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-client --lib --features developer --profile android-dev --locked
+
+      - name: Build ARM64 release native library
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          source android/toolchain.sh
           cargo ndk -t arm64-v8a -P 31 -o target/android/jniLibs build -p leocard-client --lib --release --locked
 
+      - name: Build debug APK
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          source android/toolchain.sh
+          "$LEOCARD_GRADLE" -p android --no-daemon -PleocardAbi=arm64-v8a :app:assembleDebug
+
       - name: Build and verify signed release APK
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -246,6 +275,7 @@ jobs:
           (cd dist; sha256sum leocard-android-arm64.apk > leocard-android-arm64.apk.sha256)
 
       - name: Upload Android release artifact
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v7
         with:
           name: leocard-android-arm64.apk

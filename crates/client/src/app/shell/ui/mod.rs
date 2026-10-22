@@ -1,5 +1,4 @@
 mod background;
-#[cfg(not(target_os = "android"))]
 mod checkbox;
 mod click_feedback;
 mod confirmation;
@@ -15,7 +14,6 @@ mod transition;
 
 use background::AmbientBackgroundPlugin;
 pub(crate) use background::add_page_background;
-#[cfg(not(target_os = "android"))]
 pub(crate) use checkbox::*;
 use click_feedback::ClickFeedbackPlugin;
 pub(crate) use confirmation::*;
