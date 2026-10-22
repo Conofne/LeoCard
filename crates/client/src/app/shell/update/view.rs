@@ -1,16 +1,14 @@
 use super::download::format_bytes;
-use crate::app::presentation::{MUTED, TEXT, UiComposer, add_text, spawn_node};
-use crate::app::shell::UpdateUiAction;
-use bevy::picking::Pickable;
-use leocard_client::open_url;
-
 use super::{UpdateEvent, UpdateManager, UpdateState};
+use crate::app::presentation::{MUTED, ProgressBar, TEXT, UiComposer, add_text, spawn_node};
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
-    CozyModalBackdrop, CozyModalKind, CozyModalPanel, cozy_backdrop_color, cozy_panel_transform,
+    CozyModalBackdrop, CozyModalKind, CozyModalPanel, UiAction, UiState, UpdateUiAction,
+    add_cozy_button, add_cozy_panel, cozy_backdrop_color, cozy_panel_transform,
 };
-use crate::app::shell::{UiAction, UiState, add_cozy_button, add_cozy_panel};
+use bevy::picking::Pickable;
 use bevy::prelude::*;
+use leocard_client::open_url;
 
 #[derive(Component)]
 pub(crate) struct UpdateProgressFill;
@@ -83,8 +81,7 @@ pub(crate) fn poll_update_events(mut updater: ResMut<UpdateManager>, mut ui: Res
 
 pub(crate) fn sync_update_dialog(
     updater: Res<UpdateManager>,
-    time: Res<Time>,
-    mut fills: Query<&mut Node, With<UpdateProgressFill>>,
+    mut bars: Query<&mut ProgressBar, With<UpdateProgressFill>>,
     mut statuses: Query<&mut Text, (With<UpdateStatusText>, Without<UpdateDetailText>)>,
     mut details: Query<&mut Text, (With<UpdateDetailText>, Without<UpdateStatusText>)>,
 ) {
@@ -92,21 +89,12 @@ pub(crate) fn sync_update_dialog(
         updater.state,
         UpdateState::Checking | UpdateState::Downloading { total: None, .. }
     );
-    if !updater.is_changed() && !indeterminate {
+    if !updater.is_changed() {
         return;
     }
     let (status, detail, fraction) = update_display(&updater.state);
-    for mut fill in &mut fills {
-        if indeterminate {
-            fill.width = percent(28);
-            fill.left = percent(((time.elapsed_secs() * 0.62) % 1.28 - 0.28) * 100.0);
-        } else {
-            fill.width = percent(fraction * 100.0);
-            fill.left = px(0);
-        }
-    }
-    if !updater.is_changed() {
-        return;
+    for mut bar in &mut bars {
+        bar.fraction = (!indeterminate).then_some(fraction);
     }
     for mut text in &mut statuses {
         text.0.clone_from(&status);
@@ -181,44 +169,11 @@ pub(crate) fn render_update_dialog(
     let (status, detail, fraction) = update_display(&updater.state);
     let status_entity = add_text(commands, modal, status, 18.0, TEXT, assets);
     commands.entity(status_entity).insert(UpdateStatusText);
-    let progress_track = spawn_node(
-        commands,
-        modal,
-        Node {
-            width: percent(100),
-            height: px(14),
-            border: UiRect::all(px(1)),
-            border_radius: BorderRadius::all(px(7)),
-            overflow: Overflow::clip(),
-            ..default()
-        },
-        Some(Color::srgb(0.15, 0.15, 0.18)),
+    let indeterminate = matches!(
+        updater.state,
+        UpdateState::Checking | UpdateState::Downloading { total: None, .. }
     );
-    commands
-        .entity(progress_track)
-        .insert(BorderColor::all(Color::srgba(0.62, 0.60, 0.69, 0.52)));
-    let fill = spawn_node(
-        commands,
-        progress_track,
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(0),
-            top: px(0),
-            width: percent(
-                if matches!(
-                    updater.state,
-                    UpdateState::Checking | UpdateState::Downloading { total: None, .. }
-                ) {
-                    28.0
-                } else {
-                    fraction * 100.0
-                },
-            ),
-            height: percent(100),
-            ..default()
-        },
-        Some(Color::srgb(0.54, 0.49, 0.88)),
-    );
+    let fill = ProgressBar::spawn(commands, modal, (!indeterminate).then_some(fraction));
     commands.entity(fill).insert(UpdateProgressFill);
     let detail_entity = add_text(commands, modal, detail, 13.0, MUTED, assets);
     commands.entity(detail_entity).insert(UpdateDetailText);

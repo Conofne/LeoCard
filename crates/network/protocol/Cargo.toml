@@ -1,0 +1,19 @@
+[package]
+name = "leocard-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Wire protocol and client-safe views for LeoCard"
+
+[dependencies]
+leocard-achievements = { path = "../../games/achievements" }
+leocard-blackjack = { path = "../../games/blackjack", features = ["serde"] }
+leocard-mahjong = { path = "../../games/mahjong", features = ["serde"] }
+leocard-minecraft-guess = { path = "../../games/minecraft-guess" }
+leocard-qigui523 = { path = "../../games/qigui523", features = ["serde"] }
+leocard-shengji = { path = "../../games/shengji", features = ["serde"] }
+leocard-texas-holdem = { path = "../../games/texas-holdem", features = ["serde"] }
+leocard-uno = { path = "../../games/uno", features = ["serde"] }
+postcard.workspace = true
+serde.workspace = true

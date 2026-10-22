@@ -11,7 +11,8 @@ developer = []
 
 [dependencies]
 csv.workspace = true
+fastrand.workspace = true
+leocard-achievements = { path = "../achievements" }
+leocard-game-common = { path = "../common" }
 serde.workspace = true
 serde_json.workspace = true
-fastrand.workspace = true
-leocard-game-common = { path = "../common" }

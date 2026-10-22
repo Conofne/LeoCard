@@ -1,13 +1,12 @@
+use super::adapter::AchievementInput;
 use super::{
     AchievementRecipient, AchievementSession, AchievementUnlocked, LocalAchievementTrigger,
 };
 use crate::app::runtime::ServerNotification;
 use bevy::prelude::*;
-use leocard_achievements::{
-    AchievementContext, AchievementTrigger, PersonalActivity, achievement_by_id,
-};
+use leocard_achievements::{AchievementTrigger, PersonalActivity};
 use leocard_client::{LocalPlayerProfile, PlayerAchievements};
-use leocard_protocol::ServerEvent;
+use leocard_protocol::{ACHIEVEMENT_REGISTRY, ServerEvent};
 
 #[derive(Resource, Default)]
 pub(super) struct ActivityObserver {
@@ -42,49 +41,10 @@ pub(super) fn process_triggers(
         {
             continue;
         }
-        let trigger = match (&notification.event, notification.player) {
-            (ServerEvent::GameEvent(event), Some(player))
-                if notification.game_context.is_some() =>
-            {
-                Some(AchievementTrigger::Game {
-                    player,
-                    event: event.clone(),
-                })
-            }
-            (ServerEvent::PlayerInteraction(event), Some(player)) => {
-                Some(AchievementTrigger::Interaction {
-                    player,
-                    event: *event,
-                })
-            }
-            (ServerEvent::ChatMessage(message), Some(player)) => Some(AchievementTrigger::Chat {
-                player,
-                message: message.clone(),
-            }),
-            (ServerEvent::GameStarted { host, .. }, Some(player))
-                if notification.game_context.is_some() =>
-            {
-                Some(AchievementTrigger::SessionStarted {
-                    player,
-                    host: *host,
-                })
-            }
-            _ => None,
-        };
         if state.session.enabled
-            && let Some(trigger) = trigger
+            && let Some(AchievementInput { trigger, context }) =
+                AchievementInput::from_notification(notification)
         {
-            // Chat and interaction messages carry eligibility, but do not share game-fact receipts.
-            let context = match &trigger {
-                AchievementTrigger::Game { .. } | AchievementTrigger::SessionStarted { .. } => {
-                    notification.game_context.map(|context| AchievementContext {
-                        match_id: context.match_id,
-                        hand_index: context.hand_index,
-                        sequence: context.sequence,
-                    })
-                }
-                _ => None,
-            };
             let source = state
                 .session
                 .connected
@@ -103,7 +63,7 @@ pub(super) fn process_triggers(
         }
         if let ServerEvent::AchievementUnlocked(announcement) = &notification.event
             && announcement.profile_id != state.profile.identity.profile_id()
-            && let Some(definition) = achievement_by_id(&announcement.achievement_id)
+            && let Some(definition) = ACHIEVEMENT_REGISTRY.by_id(&announcement.achievement_id)
         {
             unlocked.write(AchievementUnlocked {
                 definition,

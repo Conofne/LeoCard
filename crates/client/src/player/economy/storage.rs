@@ -2,11 +2,9 @@ use super::{ItemId, migration};
 use crate::player::config_file;
 use leocard_protocol::{MatchId, ProfileId};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{BTreeMap, BTreeSet, HashSet},
-    fs,
-    io::ErrorKind,
-};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::fs;
+use std::io::ErrorKind;
 
 const FILE_MAGIC: &[u8] = b"LEOCARD-ECONOMY\n";
 pub(super) const FORMAT_VERSION: u16 = 3;

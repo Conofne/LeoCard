@@ -1,3 +1,5 @@
+pub mod achievements;
+
 mod catalog;
 mod game;
 mod graph;

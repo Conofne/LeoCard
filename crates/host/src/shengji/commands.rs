@@ -178,19 +178,22 @@ impl ShengjiSession {
         {
             return self.reject_game_error(connection, request_id, GameError::WrongPhase);
         }
+        let events = self.open_bot_declarations();
         self.flow.bid_pass_confirmed[usize::from(player.0)] = true;
         self.confirm_automatic_bid_passes();
         self.room.bump_revision();
+        let mut deliveries = self.broadcast_events(events);
         if self
             .flow
             .bid_pass_confirmed
             .iter()
             .all(|confirmed| *confirmed)
         {
-            self.finish_bidding(Some((connection, request_id)))
+            deliveries.extend(self.finish_bidding(Some((connection, request_id))));
         } else {
-            self.broadcast_game(Some((connection, request_id)))
+            deliveries.extend(self.broadcast_game(Some((connection, request_id))));
         }
+        deliveries
     }
 
     pub(super) fn reset_bid_pass_confirmations(&mut self) {

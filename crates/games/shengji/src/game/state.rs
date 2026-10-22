@@ -395,6 +395,11 @@ impl GameState {
         self.dealer
     }
 
+    /// The established dealer, or `None` while the opening hand is contested.
+    pub const fn fixed_dealer(&self) -> Option<ShengjiPlayerId> {
+        self.fixed_dealer
+    }
+
     pub const fn current_player(&self) -> Option<ShengjiPlayerId> {
         self.current_player
     }

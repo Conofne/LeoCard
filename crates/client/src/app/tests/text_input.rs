@@ -1,4 +1,5 @@
 use super::prelude::*;
+use crate::app::presentation::TextInputPlugin as CozyTextInputPlugin;
 use bevy::{
     input::{
         ButtonState, InputPlugin as NativeInputPlugin,
@@ -34,6 +35,7 @@ fn input_app(value: &str) -> (App, Entity, Entity) {
             ..default()
         },
         TextInputPlugin,
+        CozyTextInputPlugin,
     ))
     .init_resource::<FontCx>()
     .init_resource::<Assets<Font>>()

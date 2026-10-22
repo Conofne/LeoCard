@@ -6,7 +6,8 @@ use crate::app::presentation::{
 use bevy::picking::Pickable;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
-use leocard_achievements::{AchievementDefinition, AchievementTier, achievements_in};
+use leocard_achievements::{AchievementDefinition, AchievementTier};
+use leocard_protocol::ACHIEVEMENT_REGISTRY;
 
 use super::page::AchievementsPage;
 use super::state::*;
@@ -82,7 +83,9 @@ impl AchievementsPage<'_> {
             ScrollPosition(Vec2::ZERO),
         ));
         Scrollbar::spawn(commands, viewport, scroll, ScrollbarSkin::Colored(ACCENT));
-        let mut definitions = achievements_in(self.selected).collect::<Vec<_>>();
+        let mut definitions = ACHIEVEMENT_REGISTRY
+            .in_category(self.selected)
+            .collect::<Vec<_>>();
         definitions.sort_by_key(|definition| match definition.tier {
             AchievementTier::Bronze => 0,
             AchievementTier::Silver => 1,

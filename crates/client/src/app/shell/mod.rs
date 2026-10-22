@@ -12,6 +12,8 @@ mod navigation;
 pub(super) mod overlays;
 mod plugin;
 pub(super) mod profile;
+#[cfg(not(target_os = "android"))]
+mod sakura_frp;
 mod settings;
 mod shop;
 pub(super) mod social;
@@ -31,6 +33,8 @@ pub(crate) use navigation::*;
 pub(crate) use overlays::*;
 pub(super) use plugin::*;
 pub(crate) use profile::*;
+#[cfg(not(target_os = "android"))]
+pub(crate) use sakura_frp::*;
 pub(crate) use settings::*;
 pub(crate) use shop::*;
 pub(crate) use social::*;

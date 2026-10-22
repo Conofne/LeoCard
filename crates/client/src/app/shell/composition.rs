@@ -8,6 +8,8 @@ use super::{
     add_lobby_game_shade, add_page_background, add_page_transition_shade, add_play_error_popup,
     render_confirmation, render_update_dialog,
 };
+#[cfg(not(target_os = "android"))]
+use super::{SakuraPage, SakuraState, render_startup_dialog};
 use crate::app::games::GameScreenResources;
 use crate::app::presentation::{GameSummaryAnimation, UiComposer, UiRoot};
 use crate::app::runtime::{
@@ -32,6 +34,8 @@ struct VisualAssets<'w> {
     profile_motion: Res<'w, ProfileMotion>,
     page_motion: Res<'w, PageMotion>,
     lobby_game_motion: Res<'w, LobbyGameMotion>,
+    #[cfg(not(target_os = "android"))]
+    sakura: Res<'w, SakuraState>,
 }
 
 #[derive(SystemParam)]
@@ -143,6 +147,7 @@ struct ScreenRenderer<'a, 'w, 's> {
 impl ScreenRenderer<'_, '_, '_> {
     fn render(&mut self, root: Entity) {
         if self.ui.shop.open
+            || self.sakura_open()
             || self.ui.achievements.open
             || self.client.is_none_or(|client| {
                 !matches!(client.0.model().phase(), ClientPhaseRef::Playing(_))
@@ -162,6 +167,15 @@ impl ScreenRenderer<'_, '_, '_> {
     }
 
     fn render_primary_screen(&mut self, root: Entity) {
+        #[cfg(not(target_os = "android"))]
+        if self.visuals.sakura.open {
+            SakuraPage {
+                state: &self.visuals.sakura,
+                assets: &self.visuals.ui,
+            }
+            .render(self.commands, root);
+            return;
+        }
         if self.ui.shop.open {
             ShopPage {
                 assets: &self.visuals.ui,
@@ -228,7 +242,20 @@ impl ScreenRenderer<'_, '_, '_> {
         }
     }
 
+    fn sakura_open(&self) -> bool {
+        #[cfg(not(target_os = "android"))]
+        {
+            self.visuals.sakura.open
+        }
+        #[cfg(target_os = "android")]
+        {
+            false
+        }
+    }
+
     fn render_overlays(&mut self, root: Entity) {
+        #[cfg(not(target_os = "android"))]
+        render_startup_dialog(self.commands, root, &self.visuals.sakura, &self.visuals.ui);
         if self.ui.lan.open {
             render_lan_rooms(
                 self.commands,

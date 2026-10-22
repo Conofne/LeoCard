@@ -2,6 +2,8 @@
 //!
 //! 牌堆由房主洗牌后传入；相同牌序和动作始终产生相同结果，便于联机同步、测试与回放。
 
+pub mod achievements;
+
 mod auto_play;
 mod bot;
 mod card;

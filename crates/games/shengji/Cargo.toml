@@ -7,6 +7,7 @@ rust-version.workspace = true
 description = "Pure two-deck Shengji (Tractor) rules for LeoCard"
 
 [dependencies]
+leocard-achievements = { path = "../achievements" }
 leocard-game-common = { path = "../common" }
 serde = { workspace = true, optional = true }
 

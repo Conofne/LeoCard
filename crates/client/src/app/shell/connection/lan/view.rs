@@ -6,6 +6,7 @@ use crate::app::presentation::{
 use crate::app::runtime::UiAssets;
 use crate::app::shell::{
     ConnectionUiAction, UiAction, add_cozy_button, add_cozy_close_button, add_cozy_panel,
+    add_cozy_refresh_button,
 };
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
@@ -87,14 +88,11 @@ pub(crate) fn render_lan_rooms(
         flex_grow: 1.0,
         ..default()
     });
-    add_cozy_button(
+    add_cozy_refresh_button(
         commands,
         heading,
-        "刷新",
         UiAction::Connection(ConnectionUiAction::RefreshLan),
         assets,
-        px(76),
-        40.0,
     );
     add_cozy_close_button(
         commands,

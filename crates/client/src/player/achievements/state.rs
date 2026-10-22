@@ -5,13 +5,11 @@ use crate::player::LocalPlayerProfile;
 use bevy::prelude::Resource;
 use leocard_achievements::{
     AchievementBook, AchievementContext, AchievementDefinition, AchievementTrigger,
-    AchievementTriggerResult,
+    AchievementTriggerResult, TrophyCounts,
 };
-use leocard_protocol::ProfileId;
-use std::{
-    ops::Deref,
-    time::{self, SystemTime},
-};
+use leocard_protocol::{ACHIEVEMENT_REGISTRY, ProfileId};
+use std::ops::Deref;
+use std::time::{self, SystemTime};
 
 #[derive(Resource)]
 pub struct PlayerAchievements {
@@ -49,7 +47,13 @@ impl PlayerAchievements {
         let now = SystemTime::now()
             .duration_since(time::UNIX_EPOCH)
             .map_or(0, |time| time.as_secs());
-        self.archive.book.trigger(event, context, now)
+        self.archive
+            .book
+            .trigger_with_registry(event, context, now, &ACHIEVEMENT_REGISTRY)
+    }
+
+    pub fn counts(&self) -> TrophyCounts {
+        self.archive.book.counts(&ACHIEVEMENT_REGISTRY)
     }
 
     pub fn date_label(&self, achievement: &AchievementDefinition) -> Option<String> {

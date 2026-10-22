@@ -1,4 +1,5 @@
 mod actions;
+mod bid_strip;
 mod bidding;
 mod bottom_copy;
 mod cards;

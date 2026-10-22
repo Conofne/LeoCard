@@ -1,6 +1,6 @@
 use super::{
     MahjongAssets, MahjongDealSpec, MahjongDealTile, MahjongDiscardHandShift, MahjongHandTile,
-    MahjongHoverHandKind, MahjongTileMaterial, mahjong_local_light,
+    MahjongHoverHandKind, MahjongTileMaterial, MahjongUiState, mahjong_local_light,
 };
 use crate::app::presentation::{PendingDealSound, UiComposer, ease_out_cubic};
 use crate::app::runtime::UiAssets;
@@ -121,6 +121,7 @@ pub(super) fn add_mahjong_hand_tile(
         .entity(entity)
         .entry::<MahjongHandTile>()
         .or_insert(MahjongHandTile {
+            tile,
             lift: 0.0,
             base_rotation,
             index: index as i32,
@@ -155,6 +156,7 @@ pub(super) fn add_mahjong_hand_tile(
 )]
 pub(super) fn sync_mahjong_hand_tile_materials(
     time: Res<Time>,
+    ui: Res<MahjongUiState>,
     mut materials: ResMut<Assets<MahjongTileMaterial>>,
     mut tiles: Query<
         (
@@ -171,7 +173,15 @@ pub(super) fn sync_mahjong_hand_tile_materials(
     let smoothing = 1.0 - (-18.0 * time.delta_secs()).exp();
     for (mut tile, interaction, material_node, mut transform, mut shadow, mut z_index) in &mut tiles
     {
-        let interaction = interaction.copied().unwrap_or(PickingInteraction::None);
+        let interaction = if cfg!(target_os = "android") {
+            if ui.selected_discard == Some(tile.tile) {
+                PickingInteraction::Hovered
+            } else {
+                PickingInteraction::None
+            }
+        } else {
+            interaction.copied().unwrap_or(PickingInteraction::None)
+        };
         let target = match interaction {
             PickingInteraction::None => 0.0,
             PickingInteraction::Hovered => 1.0,

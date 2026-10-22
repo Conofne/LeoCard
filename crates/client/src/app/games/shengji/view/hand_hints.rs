@@ -40,7 +40,7 @@ pub(super) fn add_hand_sequence_hint(
             position_type: PositionType::Absolute,
             right: px(width - visible_width + 3.0),
             bottom: px(7),
-            width: px(104),
+            width: px(72),
             height: px(22),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
