@@ -128,6 +128,7 @@ pub(crate) fn load_ui_assets(
             close_button_highlighted: asset_server.load("ui/home/cross_button_highlighted.png"),
             refresh_button: asset_server.load("ui/home/refresh_button.png"),
             refresh_button_highlighted: asset_server.load("ui/home/refresh_button_highlighted.png"),
+            #[cfg(not(target_os = "android"))]
             network_icon: asset_server.load("icons/network.png"),
             settings_icon: asset_server.load("icons/settings.png"),
             exit_icon: asset_server.load("icons/exit-room.png"),

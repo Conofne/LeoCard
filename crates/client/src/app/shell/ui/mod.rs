@@ -1,4 +1,5 @@
 mod background;
+#[cfg(not(target_os = "android"))]
 mod checkbox;
 mod click_feedback;
 mod confirmation;
@@ -8,11 +9,13 @@ mod header;
 mod modal;
 mod page_heading;
 mod plugin;
+#[cfg(not(target_os = "android"))]
 mod switch;
 mod transition;
 
 use background::AmbientBackgroundPlugin;
 pub(crate) use background::add_page_background;
+#[cfg(not(target_os = "android"))]
 pub(crate) use checkbox::*;
 use click_feedback::ClickFeedbackPlugin;
 pub(crate) use confirmation::*;
@@ -23,6 +26,7 @@ pub(super) use header::Header;
 pub(crate) use modal::*;
 pub(crate) use page_heading::add_page_back_title;
 pub(crate) use plugin::ShellUiPlugin;
+#[cfg(not(target_os = "android"))]
 pub(crate) use switch::add_cozy_switch;
 pub(crate) use transition::*;
 
