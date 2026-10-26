@@ -1,5 +1,6 @@
 use super::{GamePreferences, GlobalPreferences, SavedPreferences};
-use serde::{Serialize, de::DeserializeOwned};
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
@@ -61,6 +62,7 @@ impl PreferenceFiles {
         uno => "games/uno.json",
         mahjong => "games/mahjong.json",
         minecraft_guess => "games/minecraft_guess.json",
+        doudizhu => "games/doudizhu.json",
     }
 
     fn read<T: DeserializeOwned>(&self, name: &str) -> Result<Option<T>, String> {

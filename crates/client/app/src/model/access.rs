@@ -1,13 +1,15 @@
 use super::ClientModel;
 use leocard_blackjack::BlackjackRuleSet;
+use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
-    AvatarId, BlackjackCommand, BlackjackSnapshot, ChatMessage, GameCommand, GameKind, GameRules,
-    GameSnapshot, LobbySnapshot, MahjongCommand, MahjongSnapshot, MatchId, MinecraftGuessSnapshot,
-    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerReferenceChange, QiGui523Command,
-    QiGui523Snapshot, RejectReason, Revision, RoomId, ShengjiCommand, ShengjiSnapshot,
-    TexasHoldemCommand, TexasHoldemSnapshot, UnoCommand, UnoSnapshot,
+    AvatarId, BlackjackCommand, BlackjackSnapshot, ChatMessage, DoudizhuCommand, DoudizhuSnapshot,
+    GameCommand, GameKind, GameRules, GameSnapshot, LobbySnapshot, MahjongCommand, MahjongSnapshot,
+    MatchId, MinecraftGuessSnapshot, PlayerGameProfiles, PlayerId, PlayerInteraction,
+    PlayerReferenceChange, QiGui523Command, QiGui523Snapshot, RejectReason, Revision, RoomId,
+    ShengjiCommand, ShengjiSnapshot, TexasHoldemCommand, TexasHoldemSnapshot, UnoCommand,
+    UnoSnapshot,
 };
 use leocard_qigui523::QiGuiRuleSet;
 use leocard_shengji::ShengjiRuleSet;
@@ -118,6 +120,7 @@ impl ClientModel {
         }
         Some(match self.game.as_ref()? {
             GameSnapshot::QiGui523(game) => meta!(GameKind::QiGui523, game),
+            GameSnapshot::Doudizhu(game) => meta!(GameKind::Doudizhu, game),
             GameSnapshot::TexasHoldem(game) => meta!(GameKind::TexasHoldem, game),
             GameSnapshot::Shengji(game) => meta!(GameKind::Shengji, game),
             GameSnapshot::Uno(game) => meta!(GameKind::Uno, game),
@@ -145,6 +148,7 @@ impl ClientModel {
         match self.phase() {
             ClientPhaseRef::Lobby(lobby) => find_name!(lobby.players),
             ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => find_name!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => find_name!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => find_name!(game.players),
@@ -172,6 +176,7 @@ impl ClientModel {
         match self.phase() {
             ClientPhaseRef::Lobby(lobby) => avatar!(lobby.players),
             ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => avatar!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => avatar!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => avatar!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => avatar!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => avatar!(game.players),
@@ -200,6 +205,7 @@ impl ClientModel {
         match self.phase() {
             ClientPhaseRef::Lobby(lobby) => profiles!(lobby.players),
             ClientPhaseRef::Playing(GameSnapshot::QiGui523(game)) => profiles!(game.players),
+            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::TexasHoldem(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Shengji(game)) => profiles!(game.players),
             ClientPhaseRef::Playing(GameSnapshot::Uno(game)) => profiles!(game.players),
@@ -245,6 +251,9 @@ impl ClientModel {
                     .is_some_and(|player| player.auto_play);
                 Some(BlackjackCommand::SetAutoPlay { enabled: !enabled }.into())
             }
+            GameSnapshot::Doudizhu(game) => {
+                toggle!(game, |enabled| DoudizhuCommand::SetAutoPlay { enabled })
+            }
             GameSnapshot::QiGui523(game) => {
                 toggle!(game, |enabled| QiGui523Command::SetAutoPlay { enabled })
             }
@@ -264,6 +273,14 @@ impl ClientModel {
     }
 
     game_accessors!(
+        (
+            doudizhu_game,
+            DoudizhuSnapshot,
+            doudizhu,
+            doudizhu_rules,
+            DoudizhuRuleSet,
+            doudizhu
+        ),
         (
             blackjack_game,
             BlackjackSnapshot,

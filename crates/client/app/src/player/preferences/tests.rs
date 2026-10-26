@@ -1,5 +1,6 @@
 use super::files::PreferenceFiles;
 use super::{GlobalPreferences, SavedPreferences, migration};
+use leocard_doudizhu::Mode;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -74,7 +75,17 @@ fn legacy_bytes(version: u8, preferences: &SavedPreferences) -> Vec<u8> {
             .unwrap(),
         );
     } else {
-        bytes.extend(postcard::to_allocvec(&preferences.games).unwrap());
+        bytes.extend(
+            postcard::to_allocvec(&(
+                &preferences.games.qigui523,
+                &preferences.games.texas_holdem,
+                &preferences.games.shengji,
+                &preferences.games.uno,
+                &preferences.games.mahjong,
+                &preferences.games.minecraft_guess,
+            ))
+            .unwrap(),
+        );
     }
     bytes
 }
@@ -133,6 +144,27 @@ fn invalid_game_rules_reset_only_that_game_and_rule_saves_leave_global_bytes_unc
     );
     directory.files.save_games(&restored.games).unwrap();
     assert_eq!(fs::read(directory.path("global.json")).unwrap(), global);
+}
+
+#[test]
+fn doudizhu_preferences_default_and_persist_without_changing_existing_files() {
+    let directory = TestFiles::new();
+    let saved = saved_preferences();
+    directory.files.import(&saved).unwrap();
+    fs::remove_file(directory.path("games/doudizhu.json")).unwrap();
+    let global = fs::read(directory.path("global.json")).unwrap();
+    let texas = fs::read(directory.path("games/texas_holdem.json")).unwrap();
+    let mut restored = directory.files.load().unwrap();
+    assert_eq!(restored.games.doudizhu.host_rules.mode, Mode::Three);
+    restored.games.doudizhu.host_rules.mode = Mode::Four;
+    directory.files.save_games(&restored.games).unwrap();
+    let restored = directory.files.load().unwrap();
+    assert_eq!(restored.games.doudizhu.host_rules.mode, Mode::Four);
+    assert_eq!(fs::read(directory.path("global.json")).unwrap(), global);
+    assert_eq!(
+        fs::read(directory.path("games/texas_holdem.json")).unwrap(),
+        texas
+    );
 }
 
 #[test]

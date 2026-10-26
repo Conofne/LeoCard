@@ -9,6 +9,7 @@ description = "Wire protocol and client-safe views for LeoCard"
 [dependencies]
 leocard-achievements = { path = "../../games/achievements" }
 leocard-blackjack = { path = "../../games/blackjack", features = ["serde"] }
+leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
 leocard-mahjong = { path = "../../games/mahjong", features = ["serde"] }
 leocard-minecraft-guess = { path = "../../games/minecraft-guess" }
 leocard-qigui523 = { path = "../../games/qigui523", features = ["serde"] }

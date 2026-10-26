@@ -8,10 +8,12 @@ use crate::app::presentation::{
 use bevy::prelude::*;
 use leocard_blackjack::BlackjackRuleSet;
 pub(crate) use leocard_client::{
-    GameAppearancePreferences, GamePreferences, MahjongPreferences, MinecraftGuessPreferences,
-    QiGui523Preferences, SavedPreferences, ShengjiPreferences, TexasHoldemPreferences,
-    UnoPreferences, load_player_preferences, save_game_preferences, save_global_preferences,
+    DoudizhuPreferences, GameAppearancePreferences, GamePreferences, MahjongPreferences,
+    MinecraftGuessPreferences, QiGui523Preferences, SavedPreferences, ShengjiPreferences,
+    TexasHoldemPreferences, UnoPreferences, load_player_preferences, save_game_preferences,
+    save_global_preferences,
 };
+use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
@@ -54,6 +56,7 @@ pub(crate) struct HostRulePreferences {
     pub uno_rules: UnoRuleSet,
     pub mahjong_rules: MahjongRuleSet,
     pub minecraft_guess_rules: MinecraftGuessRuleSet,
+    pub doudizhu_rules: DoudizhuRuleSet,
 }
 
 #[derive(Resource, Default)]
@@ -155,6 +158,7 @@ impl PreferenceResources {
                 uno_rules: normalize_rules(saved.games.uno.host_rules),
                 mahjong_rules: normalize_rules(saved.games.mahjong.host_rules),
                 minecraft_guess_rules: normalize_rules(saved.games.minecraft_guess.host_rules),
+                doudizhu_rules: saved.games.doudizhu.host_rules,
             },
         }
     }
@@ -240,6 +244,7 @@ impl NormalizeRuleSet for MinecraftGuessRuleSet {
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
+            GameKind::Doudizhu => self.doudizhu_rules.into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::MinecraftGuess => normalize_rules(self.minecraft_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
@@ -253,6 +258,7 @@ impl HostRulePreferences {
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
             GameRules::Blackjack(_) => false,
+            GameRules::Doudizhu(rules) => replace_if_changed(&mut self.doudizhu_rules, *rules),
             GameRules::MinecraftGuess(rules) => {
                 replace_if_changed(&mut self.minecraft_guess_rules, normalize_rules(*rules))
             }
@@ -329,6 +335,9 @@ pub(super) fn save_host_rule_preferences(rules: &HostRulePreferences) -> Result<
         },
         minecraft_guess: MinecraftGuessPreferences {
             host_rules: normalize_rules(rules.minecraft_guess_rules),
+        },
+        doudizhu: DoudizhuPreferences {
+            host_rules: rules.doudizhu_rules,
         },
     };
     save_game_preferences(&games)

@@ -6,8 +6,8 @@ mod state;
 mod storage;
 
 pub use games::{
-    GamePreferences, MahjongPreferences, MinecraftGuessPreferences, QiGui523Preferences,
-    ShengjiPreferences, TexasHoldemPreferences, UnoPreferences,
+    DoudizhuPreferences, GamePreferences, MahjongPreferences, MinecraftGuessPreferences,
+    QiGui523Preferences, ShengjiPreferences, TexasHoldemPreferences, UnoPreferences,
 };
 pub use global::GlobalPreferences;
 pub use state::SavedPreferences;

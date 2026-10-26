@@ -17,6 +17,7 @@ image.workspace = true
 leocard-achievements = { path = "../games/achievements" }
 leocard-blackjack = { path = "../games/blackjack" }
 leocard-game-common = { path = "../games/common" }
+leocard-doudizhu = { path = "../games/doudizhu", features = ["serde"] }
 leocard-mahjong = { path = "../games/mahjong" }
 leocard-minecraft-guess = { path = "../games/minecraft-guess" }
 leocard-protocol = { path = "../network/protocol" }

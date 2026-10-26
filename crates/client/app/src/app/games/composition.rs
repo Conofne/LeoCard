@@ -1,6 +1,7 @@
 //! Route screens to game-owned composition resources.
 
 use super::blackjack::BlackjackScreen;
+use super::doudizhu::DoudizhuScreen;
 use super::mahjong::MahjongScreen;
 use super::minecraft_guess::MinecraftGuessScreen;
 use super::qigui523::QiGui523Screen;
@@ -19,6 +20,7 @@ use leocard_ui::UiComposer;
 #[derive(SystemParam)]
 pub(crate) struct GameScreens<'w> {
     blackjack: BlackjackScreen<'w>,
+    doudizhu: DoudizhuScreen<'w>,
     minecraft_guess: MinecraftGuessScreen<'w>,
     qigui523: QiGui523Screen<'w>,
     texas_holdem: TexasHoldemScreen<'w>,
@@ -34,6 +36,7 @@ impl GameScreens<'_> {
         shell: &mut UiState,
     ) {
         self.blackjack.reconcile(client, &mut shell.social);
+        self.doudizhu.reconcile(client, &mut shell.social);
         self.minecraft_guess.reconcile(client, &mut shell.social);
         self.qigui523.reconcile(client, &mut shell.social);
         self.texas_holdem.reconcile(client, &mut shell.social);
@@ -58,6 +61,7 @@ impl GameScreens<'_> {
         context: GameLobbyContext<'_>,
     ) {
         match lobby.game {
+            GameKind::Doudizhu => self.doudizhu.render_lobby(commands, root, lobby, context),
             GameKind::Blackjack => self.blackjack.render_lobby(commands, root, lobby, context),
             GameKind::MinecraftGuess => self
                 .minecraft_guess
@@ -80,6 +84,9 @@ impl GameScreens<'_> {
         context: GameTableContext<'_>,
     ) {
         match game {
+            GameSnapshot::Doudizhu(game) => {
+                self.doudizhu.render_table(commands, root, game, context)
+            }
             GameSnapshot::Blackjack(game) => {
                 self.blackjack.render_table(commands, root, game, context)
             }

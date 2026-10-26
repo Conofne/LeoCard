@@ -1,7 +1,8 @@
 use super::files::PreferenceFiles;
 use super::{GamePreferences, GlobalPreferences, SavedPreferences};
 use leocard_protocol::PlayerGender;
-use serde::{Deserialize, de::DeserializeOwned};
+use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
@@ -45,18 +46,29 @@ impl From<LegacyGlobalPreferences> for GlobalPreferences {
 type V4TexasPreferences = ((u8, u16, u8, bool, bool, bool, bool),);
 
 fn decode_games(bytes: &[u8], version: u8) -> Option<GamePreferences> {
-    if version == 5 {
-        return decode_exact(bytes);
-    }
-    let (qigui523, _, shengji, uno, mahjong, minecraft_guess) =
-        decode_exact::<(_, V4TexasPreferences, _, _, _, _)>(bytes)?;
+    // Legacy binary archives contain exactly six games, independently of new JSON files.
+    let (qigui523, texas_holdem, shengji, uno, mahjong, minecraft_guess) = if version == 5 {
+        decode_exact(bytes)?
+    } else {
+        let (qigui523, _, shengji, uno, mahjong, minecraft_guess) =
+            decode_exact::<(_, V4TexasPreferences, _, _, _, _)>(bytes)?;
+        (
+            qigui523,
+            GamePreferences::default().texas_holdem,
+            shengji,
+            uno,
+            mahjong,
+            minecraft_guess,
+        )
+    };
     Some(GamePreferences {
         qigui523,
-        texas_holdem: GamePreferences::default().texas_holdem,
+        texas_holdem,
         shengji,
         uno,
         mahjong,
         minecraft_guess,
+        ..GamePreferences::default()
     })
 }
 

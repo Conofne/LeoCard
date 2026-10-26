@@ -3,6 +3,7 @@
 pub(super) mod blackjack;
 mod catalog;
 mod composition;
+pub(super) mod doudizhu;
 pub(super) mod mahjong;
 pub(super) mod minecraft_guess;
 mod plugin;

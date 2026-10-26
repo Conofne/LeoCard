@@ -3465,6 +3465,7 @@ dependencies = [
  "leocard-achievements",
  "leocard-assets",
  "leocard-blackjack",
+ "leocard-doudizhu",
  "leocard-host",
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3491,6 +3492,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "leocard-doudizhu"
+version = "0.9.6"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "leocard-game-common"
 version = "0.9.6"
 
@@ -3503,6 +3511,7 @@ dependencies = [
  "image",
  "leocard-achievements",
  "leocard-blackjack",
+ "leocard-doudizhu",
  "leocard-game-common",
  "leocard-mahjong",
  "leocard-minecraft-guess",
@@ -3540,6 +3549,7 @@ version = "0.9.6"
 dependencies = [
  "leocard-achievements",
  "leocard-blackjack",
+ "leocard-doudizhu",
  "leocard-mahjong",
  "leocard-minecraft-guess",
  "leocard-qigui523",

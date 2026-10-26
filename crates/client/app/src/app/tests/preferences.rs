@@ -78,6 +78,7 @@ fn preferences_round_trip_including_avatar() {
                 },
             },
             minecraft_guess: Default::default(),
+            doudizhu: Default::default(),
         },
     };
     let encoded = postcard::to_allocvec(&saved).unwrap();

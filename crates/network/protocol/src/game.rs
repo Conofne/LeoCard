@@ -1,5 +1,6 @@
-use crate::{BlackjackCommand, PlayerId};
+use crate::{BlackjackCommand, DoudizhuCommand, PlayerId};
 use leocard_blackjack::BlackjackRuleSet;
+use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
 use leocard_mahjong::{MahjongClaim, MahjongRuleSet, MahjongTile, MahjongTileKind};
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_qigui523::{QiGuiCard, QiGuiRuleSet};
@@ -19,6 +20,7 @@ pub enum GameKind {
     Mahjong,
     MinecraftGuess,
     Blackjack,
+    Doudizhu,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -30,6 +32,7 @@ pub enum GameRules {
     Mahjong(MahjongRuleSet),
     MinecraftGuess(MinecraftGuessRuleSet),
     Blackjack(BlackjackRuleSet),
+    Doudizhu(DoudizhuRuleSet),
 }
 
 macro_rules! game_rule_projections {
@@ -55,6 +58,7 @@ impl GameRules {
             Self::Mahjong(_) => GameKind::Mahjong,
             Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
+            Self::Doudizhu(_) => GameKind::Doudizhu,
         }
     }
 
@@ -66,6 +70,7 @@ impl GameRules {
         mahjong => Mahjong(MahjongRuleSet),
         minecraft_guess => MinecraftGuess(MinecraftGuessRuleSet),
         blackjack => Blackjack(BlackjackRuleSet),
+        doudizhu => Doudizhu(DoudizhuRuleSet),
     }
 }
 
@@ -109,6 +114,7 @@ pub enum GameCommand {
     Mahjong(MahjongCommand),
     MinecraftGuess(MinecraftGuessCommand),
     Blackjack(BlackjackCommand),
+    Doudizhu(DoudizhuCommand),
 }
 
 macro_rules! impl_game_command_from {
@@ -128,6 +134,7 @@ impl_game_command_from!(UnoCommand, Uno);
 impl_game_command_from!(MahjongCommand, Mahjong);
 impl_game_command_from!(MinecraftGuessCommand, MinecraftGuess);
 impl_game_command_from!(BlackjackCommand, Blackjack);
+impl_game_command_from!(DoudizhuCommand, Doudizhu);
 
 impl GameCommand {
     pub const fn kind(&self) -> GameKind {
@@ -139,6 +146,7 @@ impl GameCommand {
             Self::Mahjong(_) => GameKind::Mahjong,
             Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
+            Self::Doudizhu(_) => GameKind::Doudizhu,
         }
     }
 }
@@ -282,5 +290,11 @@ pub enum MinecraftGuessCommand {
 impl From<BlackjackRuleSet> for GameRules {
     fn from(value: BlackjackRuleSet) -> Self {
         Self::Blackjack(value)
+    }
+}
+
+impl From<DoudizhuRuleSet> for GameRules {
+    fn from(value: DoudizhuRuleSet) -> Self {
+        Self::Doudizhu(value)
     }
 }

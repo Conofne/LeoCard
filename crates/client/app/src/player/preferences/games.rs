@@ -1,3 +1,4 @@
+use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::TABLE_SEAT_COUNT;
@@ -15,6 +16,7 @@ pub struct GamePreferences {
     pub uno: UnoPreferences,
     pub mahjong: MahjongPreferences,
     pub minecraft_guess: MinecraftGuessPreferences,
+    pub doudizhu: DoudizhuPreferences,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -47,6 +49,11 @@ pub struct MinecraftGuessPreferences {
     pub host_rules: MinecraftGuessRuleSet,
 }
 
+#[derive(Default, Deserialize, Serialize)]
+pub struct DoudizhuPreferences {
+    pub host_rules: DoudizhuRuleSet,
+}
+
 impl Default for GamePreferences {
     fn default() -> Self {
         Self {
@@ -66,6 +73,7 @@ impl Default for GamePreferences {
             uno: UnoPreferences::default(),
             mahjong: MahjongPreferences::default(),
             minecraft_guess: MinecraftGuessPreferences::default(),
+            doudizhu: DoudizhuPreferences::default(),
         }
     }
 }
