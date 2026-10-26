@@ -136,6 +136,7 @@ pub enum GameViolation {
     Mahjong(MahjongViolation),
     MinecraftGuess(MinecraftGuessViolation),
     Blackjack(BlackjackViolation),
+    Doudizhu(leocard_doudizhu::GameError),
 }
 
 impl fmt::Display for GameViolation {
@@ -155,6 +156,7 @@ impl fmt::Display for GameViolation {
             Self::Mahjong(reason) => reason.fmt(f),
             Self::MinecraftGuess(reason) => reason.fmt(f),
             Self::Blackjack(reason) => reason.fmt(f),
+            Self::Doudizhu(reason) => reason.fmt(f),
         }
     }
 }

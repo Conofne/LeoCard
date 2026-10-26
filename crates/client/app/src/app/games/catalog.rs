@@ -15,7 +15,7 @@ pub(crate) struct GameDescriptor {
     pub description: &'static str,
 }
 
-pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 7] = [
+pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 8] = [
     GameDescriptor {
         kind: GameKind::QiGui523,
         title: "七鬼五二三",
@@ -51,10 +51,16 @@ pub(crate) const SUPPORTED_GAMES: [GameDescriptor; 7] = [
         title: "21 点",
         description: "再来一张，还是见好就收？",
     },
+    GameDescriptor {
+        kind: GameKind::Doudizhu,
+        title: "斗地主",
+        description: "三人四人，谁是地主？",
+    },
 ];
 
 pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
     match rules {
+        GameRules::Doudizhu(rules) => rules.mode.players(),
         GameRules::Blackjack(_) => BlackjackRuleSet::MAX_PLAYERS,
         GameRules::Shengji(_) => ShengjiRuleSet::PLAYER_COUNT as u8,
         GameRules::Uno(_) => UnoRuleSet::MAX_PLAYERS,
@@ -66,6 +72,11 @@ pub(crate) fn game_seat_count(rules: &GameRules) -> u8 {
 
 pub(crate) fn lobby_rule_labels(rules: &GameRules) -> [String; 3] {
     match rules {
+        GameRules::Doudizhu(rules) => [
+            rules.mode.label().to_owned(),
+            format!("{} 副牌", rules.mode.deck_count()),
+            "叫分抢地主".to_owned(),
+        ],
         GameRules::Blackjack(rules) => [
             format!("{} 筹码", rules.initial_chips),
             format!("{} 局", rules.rounds),

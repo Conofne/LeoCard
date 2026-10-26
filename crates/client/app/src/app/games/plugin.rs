@@ -1,5 +1,6 @@
 //! 棋牌游戏客户端插件组合。
 
+use super::doudizhu::DoudizhuPlugin;
 use super::{
     blackjack, mahjong, minecraft_guess, qigui523, shengji, sync_summary_playback, texas_holdem,
     uno,
@@ -14,6 +15,7 @@ impl Plugin for GamesPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             blackjack::BlackjackPlugin,
+            DoudizhuPlugin,
             minecraft_guess::MinecraftGuessPlugin,
             qigui523::QiGui523Plugin,
             texas_holdem::TexasHoldemPlugin,

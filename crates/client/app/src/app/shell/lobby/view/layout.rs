@@ -7,7 +7,7 @@ pub(super) struct LobbySeatLayout {
 impl LobbySeatLayout {
     pub(super) fn new(game: GameKind) -> Self {
         let positions: &[_] = match game {
-            GameKind::Shengji | GameKind::Mahjong => {
+            GameKind::Shengji | GameKind::Mahjong | GameKind::Doudizhu => {
                 &[(239.0, 290.0), (0.0, 145.0), (239.0, 0.0), (478.0, 145.0)]
             }
             GameKind::MinecraftGuess | GameKind::Uno => &[

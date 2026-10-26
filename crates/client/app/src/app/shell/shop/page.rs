@@ -209,9 +209,9 @@ impl ShopPage<'_> {
             identity,
             match id {
                 ItemId::ObservationLens => self.assets.shop.observation_lens.clone(),
-                ItemId::ShengjiCardCounter | ItemId::QiGui523CardCounter => {
-                    self.assets.shop.card_counter.clone()
-                }
+                ItemId::ShengjiCardCounter
+                | ItemId::QiGui523CardCounter
+                | ItemId::DoudizhuCardCounter => self.assets.shop.card_counter.clone(),
                 ItemId::ShengjiMissingSuitCard => self.assets.shop.missing_suit_card.clone(),
                 ItemId::UnoJumpInDevice => self.assets.shop.uno_jump_in_device.clone(),
                 ItemId::MahjongFanCalculator => self.assets.shop.mahjong_fan_calculator.clone(),

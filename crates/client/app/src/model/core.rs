@@ -134,6 +134,11 @@ impl ClientModel {
                 self.game = None;
                 self.rejection.value = None;
             }
+            ServerEvent::GameSnapshot(GameSnapshot::Doudizhu(snapshot)) => {
+                self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you);
+                self.rules = Some(snapshot.rules.into());
+                self.store_game_snapshot(snapshot);
+            }
             ServerEvent::GameSnapshot(GameSnapshot::Blackjack(snapshot)) => {
                 self.prepare_game_snapshot(snapshot.match_id, snapshot.host_port, snapshot.you);
                 self.rules = Some(snapshot.rules.into());
@@ -181,7 +186,9 @@ impl ClientModel {
             ServerEvent::GameEvent(GameEvent::Mahjong(event)) => {
                 self.apply_mahjong_event(event);
             }
-            ServerEvent::GameEvent(GameEvent::MinecraftGuess(_) | GameEvent::Blackjack(_)) => {}
+            ServerEvent::GameEvent(
+                GameEvent::MinecraftGuess(_) | GameEvent::Blackjack(_) | GameEvent::Doudizhu(_),
+            ) => {}
             ServerEvent::PlayerInteraction(interaction) => {
                 self.pending.player_interactions.push(interaction);
             }

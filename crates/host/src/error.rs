@@ -1,6 +1,7 @@
 //! 按具体游戏保留规则、牌堆和运行错误的来源。
 
 use leocard_blackjack::GameError as BlackjackError;
+use leocard_doudizhu::GameError as DoudizhuError;
 use leocard_mahjong::{GameError as MahjongError, RuleError as MahjongRuleError};
 use leocard_minecraft_guess::GameError as MinecraftGuessError;
 use leocard_qigui523::{GameError as QiGui523Error, RuleError as QiGui523RuleError};
@@ -12,6 +13,7 @@ use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HostError {
+    Doudizhu(DoudizhuError),
     Blackjack(BlackjackError),
     Mahjong(MahjongError),
     MinecraftGuess(MinecraftGuessError),
@@ -24,6 +26,7 @@ pub enum HostError {
 impl fmt::Display for HostError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Doudizhu(error) => error.fmt(f),
             Self::Blackjack(error) => error.fmt(f),
             Self::Mahjong(error) => error.fmt(f),
             Self::MinecraftGuess(error) => error.fmt(f),
@@ -38,6 +41,7 @@ impl fmt::Display for HostError {
 impl Error for HostError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::Doudizhu(error) => Some(error),
             Self::Blackjack(error) => Some(error),
             Self::Mahjong(error) => Some(error),
             Self::MinecraftGuess(error) => Some(error),
@@ -118,5 +122,11 @@ impl From<UnoError> for HostError {
 impl From<UnoRuleError> for HostError {
     fn from(error: UnoRuleError) -> Self {
         Self::Uno(error.into())
+    }
+}
+
+impl From<DoudizhuError> for HostError {
+    fn from(error: DoudizhuError) -> Self {
+        Self::Doudizhu(error)
     }
 }

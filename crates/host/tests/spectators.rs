@@ -1,5 +1,6 @@
 use ed25519_dalek::{Signer, SigningKey};
 use leocard_blackjack::{BlackjackAction, BlackjackRuleSet, Phase};
+use leocard_doudizhu::{Mode as DoudizhuMode, RuleSet as DoudizhuRuleSet};
 use leocard_host::{ConnectionId, Delivery, GameSetup, HostSession};
 use leocard_protocol::{
     BlackjackCommand, ClientCommand, ClientMessage, GameRules, GameSnapshot, JoinRequest,
@@ -131,6 +132,9 @@ fn midgame_join_is_read_only_and_private_hands_are_hidden_in_all_games() {
         GameRules::Mahjong(Default::default()),
         GameRules::MinecraftGuess(Default::default()),
         GameRules::Blackjack(Default::default()),
+        GameRules::Doudizhu(DoudizhuRuleSet {
+            mode: DoudizhuMode::Four,
+        }),
     ] {
         let mut room = Room::started(rules);
         room.session.advance_time(Duration::from_secs(2));
@@ -138,6 +142,11 @@ fn midgame_join_is_read_only_and_private_hands_are_hidden_in_all_games() {
         assert!(snapshot.you().0 >= 128);
         assert!(!snapshot.match_complete());
         match snapshot {
+            GameSnapshot::Doudizhu(view) => {
+                assert!(view.your_hand.is_empty());
+                assert!(view.kitty.is_empty());
+                assert!(view.revealed_hands.is_empty());
+            }
             GameSnapshot::QiGui523(view) => assert!(view.your_hand.is_empty()),
             GameSnapshot::TexasHoldem(view) => {
                 assert!(view.your_hole_cards.is_empty());

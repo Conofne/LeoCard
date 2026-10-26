@@ -4,6 +4,9 @@ use super::blackjack::{
     BlackjackPlayback, BlackjackTable, BlackjackUiState, render_blackjack_lobby,
     render_blackjack_table,
 };
+use super::doudizhu::{
+    DoudizhuTable, DoudizhuUiState, render_doudizhu_lobby, render_doudizhu_table,
+};
 use super::mahjong::{
     MahjongAssets, MahjongClaimPresentationState, MahjongFanCalculator, MahjongTableVisuals,
     MahjongTileMaterial, MahjongUiState, render_mahjong_lobby, render_mahjong_table,
@@ -44,6 +47,7 @@ use leocard_protocol::{GameKind, GameSnapshot, LobbySnapshot, PlayerId};
 #[derive(SystemParam)]
 pub(crate) struct GameScreenResources<'w> {
     blackjack_ui: ResMut<'w, BlackjackUiState>,
+    doudizhu_ui: ResMut<'w, DoudizhuUiState>,
     blackjack_playback: Res<'w, BlackjackPlayback>,
     minecraft_guess_art: Res<'w, GraphArt>,
     minecraft_guess_assets: Res<'w, MinecraftGuessAssets>,
@@ -94,6 +98,11 @@ impl GameScreenResources<'_> {
             self.uno_ui.expansion_settings_progress = 0.0;
         }
         match phase {
+            ClientPhaseRef::Playing(GameSnapshot::Doudizhu(game)) => {
+                self.doudizhu_ui.reconcile(game);
+                self.clear_except(GameKind::Doudizhu);
+                retain_or_clear(shell, |target| game.players.iter().any(|p| p.id == target));
+            }
             ClientPhaseRef::Playing(GameSnapshot::Blackjack(game)) => {
                 self.blackjack_ui.reconcile(game);
                 self.clear_except(GameKind::Blackjack);
@@ -150,6 +159,9 @@ impl GameScreenResources<'_> {
     }
 
     fn clear_except(&mut self, active: GameKind) {
+        if active != GameKind::Doudizhu {
+            self.doudizhu_ui.clear();
+        }
         if active != GameKind::Blackjack {
             self.blackjack_ui.clear();
         }
@@ -171,6 +183,7 @@ impl GameScreenResources<'_> {
     }
 
     fn clear_tables(&mut self) {
+        self.doudizhu_ui.clear();
         self.blackjack_ui.clear();
         self.qigui523_ui.clear();
         self.texas_holdem_ui.clear();
@@ -191,6 +204,9 @@ impl GameScreenResources<'_> {
         avatars: &AvatarImages,
     ) {
         match lobby.game {
+            GameKind::Doudizhu => {
+                render_doudizhu_lobby(commands, root, client, lobby, assets, avatars)
+            }
             GameKind::Blackjack => {
                 render_blackjack_lobby(commands, root, client, lobby, assets, avatars)
             }
@@ -238,6 +254,25 @@ impl GameScreenResources<'_> {
         game_summary: &GameSummaryAnimation,
     ) {
         match game {
+            GameSnapshot::Doudizhu(game) => render_doudizhu_table(
+                commands,
+                root,
+                DoudizhuTable {
+                    client,
+                    game,
+                    ui: &self.doudizhu_ui,
+                    social: &ui.social,
+                    chat,
+                    assets,
+                    avatars,
+                    appearance,
+                    brightness: form.table_brightness,
+                    vignette: form.table_vignette,
+                    table_materials: &mut self.table_materials,
+                    summary: game_summary,
+                    transition: &self.start_game_transition,
+                },
+            ),
             GameSnapshot::Blackjack(game) => render_blackjack_table(
                 commands,
                 root,

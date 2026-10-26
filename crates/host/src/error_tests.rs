@@ -1,5 +1,6 @@
 use crate::{GameSetup, HostError, HostSession};
 use leocard_blackjack::{BlackjackRuleSet, GameError as BlackjackError};
+use leocard_doudizhu::{GameError as DoudizhuError, RuleSet as DoudizhuRuleSet};
 use leocard_mahjong::{GameError as MahjongError, MahjongRuleSet, RuleError as MahjongRuleError};
 use leocard_minecraft_guess::GameError as MinecraftGuessError;
 use leocard_protocol::{GameKind, RoomId};
@@ -13,7 +14,8 @@ use std::error::Error;
 
 #[test]
 fn every_game_error_retains_its_source_and_display() {
-    let errors: [HostError; 7] = [
+    let errors: [HostError; 8] = [
+        DoudizhuError::InvalidDeck.into(),
         BlackjackError::InvalidRules.into(),
         MahjongError::WrongPhase.into(),
         MinecraftGuessError::GraphUnavailable.into(),
@@ -99,6 +101,7 @@ fn session_initialization_keeps_rule_errors_in_their_game() {
 #[test]
 fn session_initialization_keeps_bad_decks_in_their_game() {
     let rules = [
+        DoudizhuRuleSet::default().into(),
         BlackjackRuleSet::default().into(),
         MahjongRuleSet::default().into(),
         QiGuiRuleSet::default().into(),
@@ -109,6 +112,7 @@ fn session_initialization_keeps_bad_decks_in_their_game() {
     for rules in rules {
         let mut setup = GameSetup::shuffled(52300, rules);
         match &mut setup {
+            GameSetup::Doudizhu { shuffled_deck, .. } => shuffled_deck.clear(),
             GameSetup::Blackjack { shuffled_shoe, .. } => shuffled_shoe.clear(),
             GameSetup::Mahjong { shuffled_deck, .. } => shuffled_deck.clear(),
             GameSetup::QiGui523 { shuffled_deck, .. } => shuffled_deck.clear(),
@@ -122,6 +126,9 @@ fn session_initialization_keeps_bad_decks_in_their_game() {
         assert!(matches!(
             (kind, error),
             (
+                GameKind::Doudizhu,
+                HostError::Doudizhu(DoudizhuError::InvalidDeck)
+            ) | (
                 GameKind::Blackjack,
                 HostError::Blackjack(BlackjackError::InvalidShoe)
             ) | (

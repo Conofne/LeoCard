@@ -33,6 +33,7 @@ image.workspace = true
 leocard-achievements = { path = "../../games/achievements" }
 leocard-assets = { path = "../assets" }
 leocard-blackjack = { path = "../../games/blackjack" }
+leocard-doudizhu = { path = "../../games/doudizhu", features = ["serde"] }
 leocard-host = { path = "../../host" }
 leocard-mahjong = { path = "../../games/mahjong" }
 leocard-minecraft-guess = { path = "../../games/minecraft-guess" }

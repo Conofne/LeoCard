@@ -12,6 +12,7 @@ pub(crate) use leocard_client::{
     QiGui523Preferences, SavedPreferences, ShengjiPreferences, TexasHoldemPreferences,
     UnoPreferences, load_player_preferences, save_player_preferences,
 };
+use leocard_doudizhu::RuleSet as DoudizhuRuleSet;
 use leocard_mahjong::MahjongRuleSet;
 use leocard_minecraft_guess::MinecraftGuessRuleSet;
 use leocard_protocol::{
@@ -237,6 +238,7 @@ impl NormalizeRuleSet for MinecraftGuessRuleSet {
 impl HostRulePreferences {
     pub(crate) fn game_rules(&self, kind: GameKind) -> GameRules {
         match kind {
+            GameKind::Doudizhu => DoudizhuRuleSet::default().into(),
             GameKind::Blackjack => BlackjackRuleSet::default().into(),
             GameKind::MinecraftGuess => normalize_rules(self.minecraft_guess_rules).into(),
             GameKind::QiGui523 => normalize_rules(self.host_rules).into(),
@@ -249,7 +251,7 @@ impl HostRulePreferences {
 
     pub(super) fn accept_game_rules(&mut self, rules: &GameRules) -> bool {
         match rules {
-            GameRules::Blackjack(_) => false,
+            GameRules::Blackjack(_) | GameRules::Doudizhu(_) => false,
             GameRules::MinecraftGuess(rules) => {
                 replace_if_changed(&mut self.minecraft_guess_rules, normalize_rules(*rules))
             }

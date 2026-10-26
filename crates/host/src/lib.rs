@@ -6,6 +6,7 @@
 mod achievements;
 mod automation;
 mod blackjack;
+mod doudizhu;
 mod error;
 #[cfg(test)]
 mod error_tests;
@@ -22,6 +23,7 @@ mod uno;
 
 use automation::{AUTOMATIC_ACTION_DELAY, AutomaticActionDelayState};
 pub use blackjack::BlackjackSession;
+pub use doudizhu::DoudizhuSession;
 use ed25519_dalek::{Signature, VerifyingKey};
 pub use error::HostError;
 use leocard_protocol::{

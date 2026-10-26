@@ -1,10 +1,10 @@
 use crate::{
     AchievementAnnouncement, AchievementCounts, AvatarId, BlackjackSnapshot, ChatContent,
-    ChatMessage, GameCommand, GameEvent, GameKind, GamePhaseView, GameRules, MahjongPhaseView,
-    MahjongSnapshot, MatchId, MinecraftGuessSnapshot, PROTOCOL_VERSION, PlayerGameProfiles,
-    PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId, QiGui523Snapshot,
-    ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId, ShengjiSnapshot,
-    TexasHoldemPhaseView, TexasHoldemSnapshot, UnoPhaseView, UnoSnapshot,
+    ChatMessage, DoudizhuSnapshot, GameCommand, GameEvent, GameKind, GamePhaseView, GameRules,
+    MahjongPhaseView, MahjongSnapshot, MatchId, MinecraftGuessSnapshot, PROTOCOL_VERSION,
+    PlayerGameProfiles, PlayerId, PlayerInteraction, PlayerInteractionKind, ProfileId,
+    QiGui523Snapshot, ReconnectToken, RejectReason, RequestId, Revision, RoomId, RoomInfo, SeatId,
+    ShengjiSnapshot, TexasHoldemPhaseView, TexasHoldemSnapshot, UnoPhaseView, UnoSnapshot,
 };
 use serde::{Deserialize, Serialize};
 
@@ -220,6 +220,7 @@ pub enum GameSnapshot {
     Mahjong(MahjongSnapshot),
     MinecraftGuess(MinecraftGuessSnapshot),
     Blackjack(BlackjackSnapshot),
+    Doudizhu(DoudizhuSnapshot),
 }
 
 macro_rules! game_snapshot_projections {
@@ -259,6 +260,7 @@ impl_game_snapshot_from!(UnoSnapshot, Uno);
 impl_game_snapshot_from!(MahjongSnapshot, Mahjong);
 impl_game_snapshot_from!(MinecraftGuessSnapshot, MinecraftGuess);
 impl_game_snapshot_from!(BlackjackSnapshot, Blackjack);
+impl_game_snapshot_from!(DoudizhuSnapshot, Doudizhu);
 
 impl GameSnapshot {
     /// A rematch can change the roster only after the whole match, never between hands.
@@ -282,6 +284,7 @@ impl GameSnapshot {
                 snapshot.progress.is_last_game() && snapshot.round.finished()
             }
             Self::Blackjack(snapshot) => snapshot.match_complete,
+            Self::Doudizhu(snapshot) => snapshot.result.is_some(),
         }
     }
 
@@ -294,6 +297,7 @@ impl GameSnapshot {
             Self::Mahjong(snapshot) => snapshot.you,
             Self::MinecraftGuess(snapshot) => snapshot.you,
             Self::Blackjack(snapshot) => snapshot.you,
+            Self::Doudizhu(snapshot) => snapshot.you,
         }
     }
 
@@ -306,6 +310,7 @@ impl GameSnapshot {
             Self::Mahjong(snapshot) => snapshot.match_id,
             Self::MinecraftGuess(snapshot) => snapshot.match_id,
             Self::Blackjack(snapshot) => snapshot.match_id,
+            Self::Doudizhu(snapshot) => snapshot.match_id,
         }
     }
 
@@ -318,6 +323,7 @@ impl GameSnapshot {
             Self::Mahjong(_) => GameKind::Mahjong,
             Self::MinecraftGuess(_) => GameKind::MinecraftGuess,
             Self::Blackjack(_) => GameKind::Blackjack,
+            Self::Doudizhu(_) => GameKind::Doudizhu,
         }
     }
 
@@ -329,5 +335,6 @@ impl GameSnapshot {
         mahjong, into_mahjong => Mahjong(MahjongSnapshot),
         minecraft_guess, into_minecraft_guess => MinecraftGuess(MinecraftGuessSnapshot),
         blackjack, into_blackjack => Blackjack(BlackjackSnapshot),
+        doudizhu, into_doudizhu => Doudizhu(DoudizhuSnapshot),
     }
 }
